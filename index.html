@@ -1072,6 +1072,18 @@ function toast(msg, ms = 3000) {
   const el = document.getElementById('toast');
   el.textContent = msg;
   el.classList.add('show');
+  // Red style for cheat messages
+  if (msg.includes('oszust')) {
+    el.style.background = 'rgba(220,38,38,.95)';
+    el.style.borderColor = '#ef4444';
+    el.style.fontSize = '1rem';
+    el.style.fontWeight = '800';
+  } else {
+    el.style.background = '';
+    el.style.borderColor = '';
+    el.style.fontSize = '';
+    el.style.fontWeight = '';
+  }
   setTimeout(() => el.classList.remove('show'), ms);
 }
 
@@ -1387,16 +1399,16 @@ function handleRoomUpdate(snap) {
 
   const players = Object.values(room.players || {});
 
-  // Notify host when someone leaves during game
-  if (isHost && room.status !== 'lobby') {
-    const prevCount = window._prevPlayerCount || players.length;
-    if (players.length < prevCount) {
-      const prevNicks = window._prevPlayerNicks || [];
-      const currentNicks = players.map(p => p.nick);
+  // Notify ALL players when someone leaves during game
+  if (room.status !== 'lobby') {
+    const prevNicks = window._prevPlayerNicks || [];
+    const currentNicks = players.map(p => p.nick);
+    if (prevNicks.length > 0) {
       const left = prevNicks.filter(n => !currentNicks.includes(n));
-      if (left.length) toast(`⚠️ ${left.join(', ')} opuścił grę`, 5000);
+      left.forEach(nick => toast(`🚨 ${nick} to oszust! Opuścił grę!`, 6000));
     }
-    window._prevPlayerCount = players.length;
+    window._prevPlayerNicks = currentNicks;
+  } else {
     window._prevPlayerNicks = players.map(p => p.nick);
   }
 
