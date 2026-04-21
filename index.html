@@ -631,11 +631,49 @@ let currentRound = 1;
 let answersSubmitted = false;
 let votesSubmitted = false;
 
-// --- UTILS ---
-function showScreen(id) {
+// --- HASH ROUTING ---
+const SCREEN_HASH = {
+  'screen-nick':    '#nick',
+  'screen-home':    '#home',
+  'screen-lobby':   '#lobby',
+  'screen-draw':    '#losowanie',
+  'screen-answer':  '#odpowiedzi',
+  'screen-voting':  '#glosowanie',
+  'screen-scores':  '#wyniki',
+};
+const HASH_SCREEN = Object.fromEntries(Object.entries(SCREEN_HASH).map(([k,v]) => [v,k]));
+
+function showScreen(id, pushHash = true) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   document.getElementById(id).classList.add('active');
+  if (pushHash && SCREEN_HASH[id]) {
+    history.pushState({ screen: id }, '', SCREEN_HASH[id]);
+  }
+  // update preview bar active state
+  document.querySelectorAll('#preview-bar [data-screen]').forEach(b => {
+    b.classList.toggle('pv-active', b.dataset.screen === id);
+  });
 }
+
+// Back/forward navigation
+window.addEventListener('popstate', (e) => {
+  const hash = location.hash;
+  const screenId = HASH_SCREEN[hash];
+  if (screenId) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.getElementById(screenId).classList.add('active');
+  }
+});
+
+// On load — restore screen from hash
+(function restoreFromHash() {
+  const hash = location.hash;
+  const screenId = HASH_SCREEN[hash];
+  if (screenId) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.getElementById(screenId).classList.add('active');
+  }
+})();
 
 function toast(msg, ms = 3000) {
   const el = document.getElementById('toast');
@@ -1218,11 +1256,10 @@ document.getElementById('preview-bar')?.querySelectorAll('[data-screen]').forEac
     const target = btn.dataset.screen;
     if (target === 'screen-draw') {
       doLetterDraw('K');
+      history.pushState({ screen: target }, '', SCREEN_HASH[target] || '#losowanie');
     } else {
       showScreen(target);
     }
-    document.querySelectorAll('#preview-bar [data-screen]').forEach(b => b.classList.remove('pv-active'));
-    btn.classList.add('pv-active');
   });
 });
 
