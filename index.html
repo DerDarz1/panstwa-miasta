@@ -495,11 +495,24 @@
 
 <!-- HOME SCREEN -->
 <div id="screen-home" class="screen">
-  <div style="flex:1;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:8px;padding:32px 0 20px">
-    <div class="hero-emoji">⚽</div>
-    <h1 style="background:var(--grad);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text">Państwa Miasta</h1>
-    <p class="subtitle" id="home-nick-display"></p>
+  <div style="text-align:center;padding:20px 0 8px">
+    <h1 style="background:var(--grad);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;font-size:1.5rem">Państwa Miasta</h1>
+    <p class="subtitle" id="home-nick-display" style="margin-top:2px"></p>
   </div>
+
+  <!-- PENALTY MINI GAME -->
+  <div class="card" style="padding:12px;position:relative">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+      <span style="font-size:.75rem;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.06em">⚽ Rzuty karne</span>
+      <div style="display:flex;gap:12px;align-items:center">
+        <span style="font-size:.75rem;color:var(--muted)">Ty: <strong id="pk-score-you" style="color:var(--green)">0</strong></span>
+        <span style="font-size:.75rem;color:var(--muted)">Bot: <strong id="pk-score-bot" style="color:var(--red)">0</strong></span>
+      </div>
+    </div>
+    <canvas id="pk-canvas" style="width:100%;border-radius:10px;display:block;cursor:crosshair;touch-action:none"></canvas>
+    <div id="pk-msg" style="text-align:center;font-size:.85rem;font-weight:700;min-height:20px;margin-top:8px;color:var(--accent2)">Celuj i kliknij żeby strzelić!</div>
+  </div>
+
   <div class="card" style="display:flex;flex-direction:column;gap:10px">
     <button class="btn-primary" id="create-room-btn">🏟️ Utwórz pokój</button>
     <button class="btn-secondary" id="join-room-btn">🔗 Dołącz do pokoju</button>
@@ -1481,6 +1494,202 @@ if (urlRoom && myNick) {
   document.getElementById('join-code-input').value = urlRoom.toUpperCase();
   document.getElementById('join-form').style.display = 'flex';
 }
+
+// =============================================
+// PENALTY KICK MINI GAME
+// =============================================
+(function initPenaltyGame() {
+  const canvas = document.getElementById('pk-canvas');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const W = 360, H = 220;
+  canvas.width = W; canvas.height = H;
+
+  let scoreYou = 0, scoreBot = 0;
+  let ball = { x: W/2, y: H-30, r: 10 };
+  let ballAnim = null;
+  let gkX = W/2, gkDir = 1, gkSpeed = 1.4;
+  let resultMsg = '', resultColor = '#34d399';
+  let phase = 'idle'; // idle | flying | result
+  let aimX = W/2, aimY = H*0.45;
+  let animFrame = null;
+
+  const GX = W*0.18, GW = W*0.64, GH = H*0.38, GY = 8;
+
+  function drawGrass() {
+    for (let i = 0; i < 8; i++) {
+      ctx.fillStyle = i%2===0 ? '#1a3a1a' : '#1e421e';
+      ctx.fillRect(i*W/8, 0, W/8, H);
+    }
+    ctx.beginPath(); ctx.arc(W/2, H-30, 3, 0, Math.PI*2);
+    ctx.fillStyle = 'rgba(255,255,255,.4)'; ctx.fill();
+    ctx.beginPath(); ctx.arc(W/2, H-30, 52, Math.PI, 0);
+    ctx.strokeStyle = 'rgba(255,255,255,.2)'; ctx.lineWidth = 1; ctx.stroke();
+  }
+
+  function drawGoal() {
+    ctx.fillStyle = 'rgba(0,0,0,.4)';
+    ctx.fillRect(GX, GY, GW, GH);
+    ctx.strokeStyle = 'rgba(255,255,255,.1)'; ctx.lineWidth = .8;
+    for (let x = GX; x <= GX+GW; x += 18) { ctx.beginPath(); ctx.moveTo(x,GY); ctx.lineTo(x,GY+GH); ctx.stroke(); }
+    for (let y = GY; y <= GY+GH; y += 14) { ctx.beginPath(); ctx.moveTo(GX,y); ctx.lineTo(GX+GW,y); ctx.stroke(); }
+    ctx.strokeStyle = '#e2e8f0'; ctx.lineWidth = 4; ctx.lineJoin = 'round';
+    ctx.shadowColor = 'rgba(255,255,255,.25)'; ctx.shadowBlur = 6;
+    ctx.beginPath(); ctx.moveTo(GX,GY+GH); ctx.lineTo(GX,GY); ctx.lineTo(GX+GW,GY); ctx.lineTo(GX+GW,GY+GH); ctx.stroke();
+    ctx.shadowBlur = 0;
+  }
+
+  function drawGK(x, diving) {
+    const gy = GY+GH-2, bw = 28, bh = 44;
+    ctx.fillStyle = '#7c6af7';
+    ctx.beginPath(); ctx.roundRect(x-bw/2, gy-bh, bw, bh, 6); ctx.fill();
+    ctx.fillStyle = '#a78bfa';
+    ctx.beginPath(); ctx.arc(x-bw/2-7, gy-bh*0.6, 8, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(x+bw/2+7, gy-bh*0.6, 8, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = '#fde68a';
+    ctx.beginPath(); ctx.arc(x, gy-bh-11, 12, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = '#1e293b';
+    ctx.beginPath(); ctx.arc(x-4, gy-bh-12, 2.5, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(x+4, gy-bh-12, 2.5, 0, Math.PI*2); ctx.fill();
+  }
+
+  function drawBall(x, y, r) {
+    ctx.beginPath(); ctx.ellipse(x, y+r+2, r*.8, r*.3, 0, 0, Math.PI*2);
+    ctx.fillStyle = 'rgba(0,0,0,.3)'; ctx.fill();
+    ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI*2);
+    ctx.fillStyle = '#f1f5f9'; ctx.fill();
+    ctx.fillStyle = '#1e293b';
+    ctx.beginPath(); ctx.arc(x, y, r*.35, 0, Math.PI*2); ctx.fill();
+    for (let a = 0; a < 5; a++) {
+      const ang = (a/5)*Math.PI*2 - Math.PI/2;
+      ctx.beginPath(); ctx.arc(x+Math.cos(ang)*r*.55, y+Math.sin(ang)*r*.55, r*.22, 0, Math.PI*2);
+      ctx.fillStyle = '#334155'; ctx.fill();
+    }
+  }
+
+  function drawAim(x, y) {
+    const pulse = .7 + .3*Math.sin(Date.now()/180);
+    ctx.beginPath(); ctx.arc(x, y, 22*pulse, 0, Math.PI*2);
+    ctx.strokeStyle = 'rgba(248,113,113,.3)'; ctx.lineWidth = 2; ctx.stroke();
+    ctx.strokeStyle = 'rgba(248,113,113,.9)'; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.moveTo(x-13,y); ctx.lineTo(x+13,y); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(x,y-13); ctx.lineTo(x,y+13); ctx.stroke();
+    ctx.beginPath(); ctx.arc(x, y, 5, 0, Math.PI*2); ctx.stroke();
+  }
+
+  function render() {
+    ctx.clearRect(0, 0, W, H);
+    drawGrass(); drawGoal();
+
+    if (phase === 'idle') {
+      gkX += gkDir * gkSpeed;
+      if (gkX > GX+GW-22 || gkX < GX+22) gkDir *= -1;
+      drawGK(gkX);
+      drawBall(W/2, H-30, ball.r);
+      drawAim(aimX, aimY);
+    } else if (phase === 'flying') {
+      const p = Math.min(1, (Date.now()-ballAnim.start)/ballAnim.dur);
+      const ease = p<.5 ? 2*p*p : -1+(4-2*p)*p;
+      ball.x = W/2 + (ballAnim.tx-W/2)*ease;
+      ball.y = (H-30) + (ballAnim.ty-(H-30))*ease;
+      const sc = 1 - ease*.45;
+      // GK dives toward shot
+      const targetGK = ballAnim.tx;
+      gkX += (targetGK - gkX) * 0.12;
+      drawGK(gkX);
+      drawBall(ball.x, ball.y, ball.r*sc);
+      if (p >= 1) { phase = 'result'; resolveShot(); }
+    } else if (phase === 'result') {
+      drawGK(gkX);
+      drawBall(ball.x, ball.y, ball.r*.55);
+      ctx.font = 'bold 26px system-ui';
+      ctx.textAlign = 'center';
+      ctx.fillStyle = resultColor;
+      ctx.shadowColor = 'rgba(0,0,0,.9)'; ctx.shadowBlur = 10;
+      ctx.fillText(resultMsg, W/2, H/2+8);
+      ctx.shadowBlur = 0;
+    }
+
+    animFrame = requestAnimationFrame(render);
+  }
+
+  function resolveShot() {
+    const tx = ballAnim.tx, ty = ballAnim.ty;
+    const inGoal = tx>GX+6 && tx<GX+GW-6 && ty>GY+4 && ty<GY+GH-4;
+    if (!inGoal) {
+      resultMsg = '😬 Niecelnie!'; resultColor = '#f87171';
+      document.getElementById('pk-msg').textContent = '😬 Niecelnie! Kliknij żeby spróbować ponownie';
+      document.getElementById('pk-msg').style.color = '#f87171';
+      scoreBot++;
+    } else {
+      const dist = Math.abs(gkX - tx);
+      if (dist < GW*0.26) {
+        resultMsg = '🧤 Obroniony!'; resultColor = '#f87171';
+        document.getElementById('pk-msg').textContent = '🧤 Bramkarz obronił! Kliknij żeby spróbować ponownie';
+        document.getElementById('pk-msg').style.color = '#f87171';
+        scoreBot++;
+      } else {
+        resultMsg = '⚽ GOL!'; resultColor = '#34d399';
+        document.getElementById('pk-msg').textContent = '⚽ GOL! Kliknij żeby strzelić ponownie';
+        document.getElementById('pk-msg').style.color = '#34d399';
+        scoreYou++;
+        soundLand();
+      }
+    }
+    document.getElementById('pk-score-you').textContent = scoreYou;
+    document.getElementById('pk-score-bot').textContent = scoreBot;
+  }
+
+  function handleShoot(cx, cy) {
+    if (phase === 'result') {
+      phase = 'idle'; ball.x = W/2; ball.y = H-30; resultMsg = '';
+      document.getElementById('pk-msg').textContent = 'Celuj i kliknij żeby strzelić!';
+      document.getElementById('pk-msg').style.color = 'var(--accent2)';
+      return;
+    }
+    if (phase !== 'idle') return;
+    const rect = canvas.getBoundingClientRect();
+    const tx = cx * (W/rect.width), ty = cy * (H/rect.height);
+    ballAnim = { tx, ty, start: Date.now(), dur: 400 };
+    phase = 'flying';
+    soundTick(1.6);
+  }
+
+  canvas.addEventListener('mousemove', e => {
+    if (phase !== 'idle') return;
+    const r = canvas.getBoundingClientRect();
+    aimX = (e.clientX-r.left)*(W/r.width);
+    aimY = (e.clientY-r.top)*(H/r.height);
+  });
+  canvas.addEventListener('click', e => {
+    const r = canvas.getBoundingClientRect();
+    handleShoot(e.clientX-r.left, e.clientY-r.top);
+  });
+  canvas.addEventListener('touchmove', e => {
+    e.preventDefault();
+    if (phase !== 'idle') return;
+    const r = canvas.getBoundingClientRect(), t = e.touches[0];
+    aimX = (t.clientX-r.left)*(W/r.width);
+    aimY = (t.clientY-r.top)*(H/r.height);
+  }, { passive: false });
+  canvas.addEventListener('touchend', e => {
+    e.preventDefault();
+    const r = canvas.getBoundingClientRect(), t = e.changedTouches[0];
+    handleShoot(t.clientX-r.left, t.clientY-r.top);
+  }, { passive: false });
+
+  // Start/stop with screen visibility
+  const homeEl = document.getElementById('screen-home');
+  new MutationObserver(() => {
+    if (homeEl.classList.contains('active')) {
+      if (!animFrame) render();
+    } else {
+      cancelAnimationFrame(animFrame); animFrame = null;
+    }
+  }).observe(homeEl, { attributes: true, attributeFilter: ['class'] });
+
+  if (homeEl.classList.contains('active')) render();
+})();
 
 // --- PREVIEW MODE ---
 const isPreview = urlParams.get('preview') === '1';
