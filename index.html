@@ -605,6 +605,26 @@
     transition: background .3s;
   }
   .answer-progress-dot.filled { background: var(--grad-green); }
+
+  /* PROFILE */
+  .avatar-option {
+    font-size: 2rem; width: 52px; height: 52px;
+    display: flex; align-items: center; justify-content: center;
+    border-radius: 14px; cursor: pointer;
+    border: 2px solid transparent;
+    background: rgba(108,92,231,.08);
+    transition: all .15s;
+  }
+  .avatar-option:hover { background: rgba(108,92,231,.2); transform: scale(1.1); }
+  .avatar-option.selected { border-color: var(--accent); background: rgba(108,92,231,.2); box-shadow: 0 0 12px rgba(108,92,231,.4); }
+  .stat-card {
+    background: rgba(8,11,20,.6);
+    border: 1px solid var(--border);
+    border-radius: 14px; padding: 14px;
+    text-align: center;
+  }
+  .stat-value { font-size: 1.6rem; font-weight: 900; background: var(--grad); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+  .stat-label { font-size: .7rem; color: var(--muted); font-weight: 700; text-transform: uppercase; letter-spacing: .06em; margin-top: 2px; }
 </style>
 </head>
 <body>
@@ -630,7 +650,9 @@
 
 <!-- HOME SCREEN -->
 <div id="screen-home" class="screen">
-  <div style="flex:1;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:10px;padding:40px 0 24px">
+  <div style="flex:1;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:10px;padding:40px 0 24px;position:relative">
+    <!-- Profile button top right -->
+    <button id="profile-btn" onclick="showScreen('screen-profile')" style="position:absolute;top:0;right:0;width:auto;padding:8px 12px;background:rgba(108,92,231,.15);border:1px solid rgba(108,92,231,.3);border-radius:12px;font-size:1.4rem;line-height:1" title="Profil"></button>
     <div class="hero-emoji">⚽</div>
     <h1 class="title-glow">Państwa Miasta</h1>
     <p class="subtitle" id="home-nick-display"></p>
@@ -644,6 +666,36 @@
     <input id="join-code-input" type="text" placeholder="ABCD12" maxlength="6"
       style="text-transform:uppercase;letter-spacing:.3em;font-size:1.6rem;text-align:center;font-weight:900;font-family:monospace">
     <button class="btn-green" id="join-confirm-btn">Dołącz ✓</button>
+  </div>
+</div>
+
+<!-- PROFILE SCREEN -->
+<div id="screen-profile" class="screen">
+  <div style="display:flex;align-items:center;gap:12px;padding:8px 0 4px">
+    <button onclick="showScreen('screen-home')" style="width:auto;padding:8px 14px;background:transparent;border:1px solid var(--border2);border-radius:10px;color:var(--muted);font-size:.9rem">← Wróć</button>
+    <h2 style="font-size:1.1rem">Mój profil</h2>
+  </div>
+
+  <!-- Avatar picker -->
+  <div class="card" style="text-align:center">
+    <div id="profile-avatar-big" style="font-size:5rem;margin-bottom:12px;cursor:pointer;filter:drop-shadow(0 0 20px rgba(108,92,231,.4))" title="Kliknij aby zmienić"></div>
+    <div class="section-title" style="margin-bottom:10px">Wybierz awatar</div>
+    <div id="avatar-picker" style="display:flex;flex-wrap:wrap;gap:8px;justify-content:center"></div>
+  </div>
+
+  <!-- Nick change -->
+  <div class="card">
+    <div class="label">Pseudonim</div>
+    <div style="display:flex;gap:8px">
+      <input id="profile-nick-input" type="text" maxlength="20" autocomplete="off" style="flex:1">
+      <button id="profile-nick-save" class="btn-primary" style="width:auto;padding:12px 18px;font-size:.9rem">Zapisz</button>
+    </div>
+  </div>
+
+  <!-- Stats -->
+  <div class="card">
+    <h3 style="color:var(--text);margin-bottom:14px;font-size:1rem">📊 Statystyki</h3>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px" id="profile-stats"></div>
   </div>
 </div>
 
@@ -995,6 +1047,7 @@ function launchConfetti(duration = 3000) {
 const SCREEN_HASH = {
   'screen-nick':    '#nick',
   'screen-home':    '#home',
+  'screen-profile': '#profil',
   'screen-lobby':   '#lobby',
   'screen-draw':    '#losowanie',
   'screen-answer':  '#odpowiedzi',
@@ -1012,6 +1065,7 @@ function showScreen(id, pushHash = true) {
   setTimeout(() => {
     document.querySelectorAll('.screen').forEach(s => { if (s.id !== id) s.classList.remove('active'); });
     document.getElementById(id).classList.add('active');
+    if (id === 'screen-profile') initProfileScreen();
   }, current && current.id !== id ? 80 : 0);
 
   if (pushHash && SCREEN_HASH[id]) {
@@ -1054,8 +1108,80 @@ function genCode() {
 }
 
 // --- NICK ---
+const AVATARS = ['⚽','🏆','🥅','👟','🧤','🦁','🐯','🦊','🐺','🦅','🔥','⚡','💎','🌟','🎯','🏅','🎮','👑','🤖','🦸'];
+
+let myAvatar = localStorage.getItem('pm-avatar') || '⚽';
+let myStats = JSON.parse(localStorage.getItem('pm-stats') || '{"gamesPlayed":0,"totalPoints":0,"roundsWon":0,"uniqueAnswers":0}');
+
+function saveStats(roundScore, isWinner, uniqueCount) {
+  myStats.gamesPlayed = (myStats.gamesPlayed || 0);
+  myStats.totalPoints = (myStats.totalPoints || 0) + roundScore;
+  myStats.roundsWon = (myStats.roundsWon || 0) + (isWinner ? 1 : 0);
+  myStats.uniqueAnswers = (myStats.uniqueAnswers || 0) + uniqueCount;
+  localStorage.setItem('pm-stats', JSON.stringify(myStats));
+}
+
+function updateProfileBtn() {
+  const btn = document.getElementById('profile-btn');
+  if (btn) btn.textContent = myAvatar;
+}
+
+function initProfileScreen() {
+  // Avatar big display
+  document.getElementById('profile-avatar-big').textContent = myAvatar;
+
+  // Avatar picker
+  const picker = document.getElementById('avatar-picker');
+  picker.innerHTML = '';
+  AVATARS.forEach(av => {
+    const btn = document.createElement('button');
+    btn.className = 'avatar-option' + (av === myAvatar ? ' selected' : '');
+    btn.textContent = av;
+    btn.style.cssText = 'width:auto;padding:0;border:none;';
+    btn.onclick = () => {
+      myAvatar = av;
+      localStorage.setItem('pm-avatar', av);
+      document.getElementById('profile-avatar-big').textContent = av;
+      picker.querySelectorAll('.avatar-option').forEach(b => b.classList.remove('selected'));
+      btn.classList.add('selected');
+      updateProfileBtn();
+      toast('Awatar zapisany!');
+    };
+    picker.appendChild(btn);
+  });
+
+  // Nick input
+  document.getElementById('profile-nick-input').value = myNick;
+
+  // Stats
+  const stats = document.getElementById('profile-stats');
+  const s = myStats;
+  stats.innerHTML = [
+    ['🎮', s.gamesPlayed || 0, 'Gier'],
+    ['⭐', s.totalPoints || 0, 'Punktów'],
+    ['🏆', s.roundsWon || 0, 'Wygranych rund'],
+    ['💡', s.uniqueAnswers || 0, 'Unikalnych odp.'],
+  ].map(([icon, val, label]) => `
+    <div class="stat-card">
+      <div style="font-size:1.5rem">${icon}</div>
+      <div class="stat-value">${val}</div>
+      <div class="stat-label">${label}</div>
+    </div>
+  `).join('');
+}
+
+document.getElementById('profile-nick-save').addEventListener('click', () => {
+  const nick = document.getElementById('profile-nick-input').value.trim();
+  if (nick.length < 2) { toast('Nick musi mieć min. 2 znaki'); return; }
+  myNick = nick;
+  localStorage.setItem('pm-nick', nick);
+  document.getElementById('home-nick-display').textContent = `Witaj, ${nick}! ${myAvatar}`;
+  toast('Nick zapisany!');
+});
+
 if (myNick) {
-  document.getElementById('home-nick-display').textContent = `Witaj, ${myNick}!`;
+  document.getElementById('home-nick-display').textContent = `Witaj, ${myNick}! ${myAvatar}`;
+  updateProfileBtn();
   showScreen('screen-home');
 }
 
@@ -1064,7 +1190,8 @@ document.getElementById('nick-btn').onclick = () => {
   if (nick.length < 2) { toast('Nick musi mieć min. 2 znaki'); return; }
   myNick = nick;
   localStorage.setItem('pm-nick', nick);
-  document.getElementById('home-nick-display').textContent = `Witaj, ${nick}!`;
+  document.getElementById('home-nick-display').textContent = `Witaj, ${nick}! ${myAvatar}`;
+  updateProfileBtn();
   showScreen('screen-home');
 };
 
@@ -1268,12 +1395,11 @@ function doLetterDraw(letter, roomData) {
 
   // Slot machine spin
   let cycles = 0;
-  const totalCycles = 28;
+  const totalCycles = 18; // było 28 — szybciej
 
   // Helper: swap letter with slot animation
   function slotTick(nextLetter, isLast) {
     return new Promise(resolve => {
-      // exit current
       display.classList.remove('slot-enter', 'slot-land');
       display.classList.add('slot-exit');
 
@@ -1281,8 +1407,8 @@ function doLetterDraw(letter, roomData) {
         display.textContent = nextLetter;
         display.classList.remove('slot-exit');
         display.classList.add(isLast ? 'slot-land' : 'slot-enter');
-        setTimeout(resolve, isLast ? 550 : 140);
-      }, 120);
+        setTimeout(resolve, isLast ? 500 : 80); // było 140 — szybciej
+      }, 70); // było 120 — szybciej
     });
   }
 
@@ -1294,11 +1420,10 @@ function doLetterDraw(letter, roomData) {
     for (let i = 0; i < totalCycles; i++) {
       const isLast = i === totalCycles - 1;
       const next = isLast ? letter : LETTERS[Math.floor(Math.random() * LETTERS.length)];
-      // slow down near end
-      const delay = i < 20 ? 0 : (i - 20) * 18;
+      // slow down only last 5 ticks
+      const delay = i < 13 ? 0 : (i - 13) * 30;
       if (delay > 0) await new Promise(r => setTimeout(r, delay));
-      // pitch rośnie przy zwalnianiu — jak CS case
-      const pitch = i < 20 ? 0.8 : 0.8 + (i - 20) * 0.04;
+      const pitch = i < 13 ? 0.8 : 0.8 + (i - 13) * 0.06;
       if (!isLast) soundTick(pitch);
       await slotTick(next, isLast);
     }
@@ -1741,6 +1866,13 @@ function doScores(room) {
   }
 
   if (isLastRound) { soundWin(); launchConfetti(4000); }
+
+  // Save stats locally
+  const myRoundScore = roundScores[myNick] || 0;
+  const isWinner = isLastRound && players[0]?.nick === myNick;
+  const uniqueCount = myRoundScore > 0 ? 1 : 0; // approximate
+  if (isLastRound) myStats.gamesPlayed = (myStats.gamesPlayed || 0) + 1;
+  saveStats(myRoundScore, isWinner, uniqueCount);
 
   document.getElementById('next-round-btn').style.display = (!isLastRound && isHost) ? 'block' : 'none';
   document.getElementById('new-game-btn').style.display = 'block';
