@@ -1500,7 +1500,7 @@ function doVoting(room) {
       const isMe = player === myNick;
       html += `<tr>
         <td style="width:110px;font-weight:600">${player}</td>
-        <td style="${isMe ? 'color:#6366f1;font-style:italic' : ''}">${answer || '<span style="color:#475569">brak</span>'}</td>
+        <td data-answer-cell="${player}__${cat}" style="${isMe ? 'color:#6366f1;font-style:italic' : ''}">${answer || '<span style="color:#475569">brak</span>'}</td>
         <td style="width:72px;text-align:right">
           ${!isMe && answer ? `
             <button class="vote-btn approve" data-player="${player}" data-cat="${cat}" data-val="1">✓</button>
@@ -1527,21 +1527,86 @@ function doVoting(room) {
       b.classList.remove('chosen');
     });
     btn.classList.add('chosen');
+
+    // Live: push vote to Firebase immediately so others see it
+    update(ref(db, `pm-rooms/${roomCode}/liveVotes/${myNick}/${player}/${cat}`), val === '1');
+
+    // Live: update answer appearance based on current votes
+    updateLiveVoteDisplay(player, cat);
   };
+
+  // Listen for live votes from others
+  const liveVotesRef = ref(db, `pm-rooms/${roomCode}/liveVotes`);
+  const liveUnsub = onValue(liveVotesRef, (snap) => {
+    const liveVotes = snap.val() || {};
+    // For each player+cat combo, count votes and update display
+    cats.forEach(c => {
+      players.forEach(p => {
+        if (p === myNick) return;
+        updateLiveVoteDisplay(p, c, liveVotes);
+      });
+    });
+  });
+  // Store unsub so we can clean it up
+  window._liveVoteUnsub = liveUnsub;
 
   document.getElementById('submit-votes-btn').style.display = 'block';
   document.getElementById('voting-waiting').style.display = 'none';
+
+  function updateLiveVoteDisplay(player, cat, liveVotes) {
+    // Count votes for this answer from all voters
+    const votes = liveVotes || {};
+    let yes = 0, no = 0, total = 0;
+    Object.entries(votes).forEach(([voter, playerVotes]) => {
+      if (voter === player) return;
+      const v = playerVotes?.[player]?.[cat];
+      if (v !== undefined) { total++; v ? yes++ : no++; }
+    });
+
+    // Find the answer cell for this player+cat
+    const answerCell = container.querySelector(`[data-answer-cell="${player}__${cat}"]`);
+    if (!answerCell) return;
+
+    if (total === 0) {
+      answerCell.style.textDecoration = '';
+      answerCell.style.opacity = '';
+      answerCell.style.color = '';
+      answerCell.querySelector('.vote-live-count')?.remove();
+      return;
+    }
+
+    const majority = no > yes && no > total / 2;
+    answerCell.style.textDecoration = majority ? 'line-through' : '';
+    answerCell.style.opacity = majority ? '0.45' : '1';
+    answerCell.style.color = majority ? 'var(--red)' : yes > no ? 'var(--green)' : '';
+
+    // Show live count badge
+    let badge = answerCell.querySelector('.vote-live-count');
+    if (!badge) {
+      badge = document.createElement('span');
+      badge.className = 'vote-live-count';
+      badge.style.cssText = 'font-size:.68rem;margin-left:6px;font-weight:700;opacity:.7';
+      answerCell.appendChild(badge);
+    }
+    badge.textContent = total > 0 ? `${yes}✓ ${no}✗` : '';
+  }
 }
 
 async function submitVotes() {
   if (votesSubmitted) return;
   votesSubmitted = true;
-  await update(ref(db, `pm-rooms/${roomCode}/votes/${myNick}`), myVotes);
+
+  // Cleanup live votes listener
+  if (window._liveVoteUnsub) { window._liveVoteUnsub(); window._liveVoteUnsub = null; }
+
+  // Ensure we send at least a placeholder so Firebase registers this player voted
+  const toSend = Object.keys(myVotes).length > 0 ? myVotes : { _voted: true };
+  await update(ref(db, `pm-rooms/${roomCode}/votes/${myNick}`), toSend);
+
   document.getElementById('submit-votes-btn').style.display = 'none';
   document.getElementById('voting-waiting').style.display = 'block';
   soundSend();
 
-  // Każdy sprawdza — kto pierwszy zobaczy że wszyscy zagłosowali, ten liczy wyniki
   checkAllVoted();
 }
 
@@ -1592,7 +1657,7 @@ async function calculateAndSaveScores(room) {
       Object.keys(votes).forEach(voter => {
         if (voter === player) return;
         const v = votes[voter]?.[player]?.[cat];
-        if (v !== undefined) { total++; if (v) valid++; }
+        if (v !== undefined && v !== true) { total++; if (v) valid++; } // ignore _voted placeholder
       });
       const baseScore = total > 0 ? Math.max(1, Math.round((valid / total) * 10)) : 1;
 
