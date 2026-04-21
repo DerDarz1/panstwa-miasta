@@ -1092,7 +1092,7 @@ document.getElementById('max-rounds-select').onchange = (e) => {
   if (roomRef && isHost) update(roomRef, { 'config/maxRounds': gameConfig.maxRounds });
 };
 document.getElementById('start-game-btn').onclick = startGame;
-document.getElementById('leave-lobby-btn').onclick = leaveRoom;
+document.getElementById('leave-lobby-btn').onclick = () => { leaveRoom(); showScreen('screen-home'); };
 document.getElementById('copy-link-btn').onclick = () => {
   navigator.clipboard.writeText(document.getElementById('lobby-link').textContent);
   toast('Link skopiowany!');
