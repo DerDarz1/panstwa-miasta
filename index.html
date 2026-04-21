@@ -401,6 +401,30 @@
     height: 1px; background: linear-gradient(90deg, transparent, var(--border2), transparent);
     margin: 4px 0;
   }
+
+  /* PREVIEW BAR */
+  #preview-bar {
+    position: fixed; bottom: 0; left: 0; right: 0; z-index: 9999;
+    background: rgba(13,15,26,.95);
+    backdrop-filter: blur(12px);
+    border-top: 1px solid var(--border2);
+    padding: 8px 12px;
+    display: flex; align-items: center; gap: 6px;
+    overflow-x: auto; -webkit-overflow-scrolling: touch;
+  }
+  #preview-bar::-webkit-scrollbar { display: none; }
+  .pv-btn {
+    flex-shrink: 0;
+    padding: 6px 12px; border-radius: 8px; border: 1px solid var(--border2);
+    background: var(--surface2); color: var(--muted);
+    font-size: .72rem; font-weight: 700; cursor: pointer;
+    width: auto; letter-spacing: .02em;
+    transition: all .15s;
+  }
+  .pv-btn:hover { background: var(--border); color: var(--text); }
+  .pv-btn.pv-active { background: var(--grad); color: #fff; border-color: transparent; }
+  /* make room for preview bar */
+  body:has(#preview-bar[style*="flex"]) #app { padding-bottom: 60px; }
 </style>
 </head>
 <body>
@@ -557,6 +581,18 @@
 </div>
 <div class="toast" id="toast"></div>
 
+<!-- PREVIEW BAR -->
+<div id="preview-bar" style="display:none">
+  <span style="font-size:.7rem;color:#7b82b0;font-weight:700;letter-spacing:.05em;white-space:nowrap">PODGLĄD</span>
+  <button class="pv-btn pv-active" data-screen="screen-nick">Nick</button>
+  <button class="pv-btn" data-screen="screen-home">Home</button>
+  <button class="pv-btn" data-screen="screen-lobby">Lobby</button>
+  <button class="pv-btn" data-screen="screen-draw">Losowanie</button>
+  <button class="pv-btn" data-screen="screen-answer">Odpowiedzi</button>
+  <button class="pv-btn" data-screen="screen-voting">Głosowanie</button>
+  <button class="pv-btn" data-screen="screen-scores">Wyniki</button>
+</div>
+
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getDatabase, ref, set, get, onValue, update, remove, onDisconnect }
@@ -577,7 +613,7 @@ const db = getDatabase(app);
 
 const CATEGORIES = [
   'Piłkarz','Klub piłkarski','Kraj/Reprezentacja','Liga piłkarska','Stadion',
-  'Trener','Gol (pojęcie)','Turniej/Rozgrywki','Legendarny piłkarz','Pozycja na boisku'
+  'Trener','inne słowo na gol','Turniej/Rozgrywki','Legendarny piłkarz','Pozycja na boisku'
 ];
 const LETTERS = 'ABCDEFGHIJKLMNOPRSTUWYZ'.split('');
 
@@ -1087,6 +1123,126 @@ if (urlRoom && myNick) {
   document.getElementById('join-code-input').value = urlRoom.toUpperCase();
   document.getElementById('join-form').style.display = 'flex';
 }
+
+// --- PREVIEW MODE ---
+const isPreview = urlParams.get('preview') === '1';
+
+function activatePreview() {
+  myNick = myNick || 'Podgląd';
+  currentRound = 1;
+  gameConfig = { categories: 5, timeLimit: 120, maxRounds: 5 };
+
+  const bar = document.getElementById('preview-bar');
+  bar.style.display = 'flex';
+
+  // fill fake data for screens
+  document.getElementById('home-nick-display').textContent = `Witaj, ${myNick}!`;
+  document.getElementById('lobby-code').textContent = 'DEMO12';
+  document.getElementById('lobby-link').textContent = `${location.origin}${location.pathname}?room=DEMO12`;
+
+  // fake players in lobby
+  const lp = document.getElementById('lobby-players');
+  lp.innerHTML = '';
+  ['Jan','Kacper','Ola'].forEach(n => {
+    const d = document.createElement('div');
+    d.className = 'player-item';
+    d.innerHTML = `<div class="player-avatar">${n[0]}</div><span style="font-weight:600">${n}</span><div class="dot"></div>`;
+    lp.appendChild(d);
+  });
+  document.getElementById('start-game-btn').disabled = false;
+  document.getElementById('start-game-btn').textContent = '▶ Start gry (3 graczy)';
+
+  // fake answer screen
+  document.getElementById('answer-round-badge').textContent = 'Runda 1';
+  document.getElementById('answer-letter').textContent = 'K';
+  const cats = CATEGORIES.slice(0, 5);
+  const ac = document.getElementById('answer-categories');
+  ac.innerHTML = '';
+  cats.forEach((cat, i) => {
+    const d = document.createElement('div');
+    d.className = 'category-row';
+    d.innerHTML = `<div class="category-label">${cat}</div>
+      <input class="category-input" id="cat-${i}" placeholder="Wpisz odpowiedź..." maxlength="50">`;
+    ac.appendChild(d);
+  });
+  document.getElementById('submit-answers-btn').style.display = 'block';
+  document.getElementById('answer-waiting').style.display = 'none';
+  document.getElementById('answer-timer-bar-wrap').style.display = 'block';
+  document.getElementById('answer-timer-fill').style.width = '60%';
+  document.getElementById('answer-timer-text').textContent = '1:12';
+
+  // fake voting screen
+  const vt = document.getElementById('voting-tables');
+  vt.innerHTML = '';
+  const fakePlayers = ['Kacper','Ola'];
+  cats.forEach(cat => {
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.style.marginBottom = '12px';
+    let html = `<h3 style="margin-bottom:8px">${cat}</h3><table class="voting-table"><tbody>`;
+    fakePlayers.forEach(player => {
+      const fakeAnswer = { 'Piłkarz':'Kylian Mbappé','Klub piłkarski':'Kaiserslautern','Kraj/Reprezentacja':'Kamerun','Liga piłkarska':'Kreisliga','Stadion':'King Power','Trener':'Klopp','inne słowo na gol':'Kutas','Turniej/Rozgrywki':'Konfederacji','Legendarny piłkarz':'Keane','Pozycja na boisku':'Kapitan' }[cat] || 'Kowalski';
+      html += `<tr>
+        <td style="width:110px;font-weight:600">${player}</td>
+        <td>${fakeAnswer}</td>
+        <td style="width:72px;text-align:right">
+          <button class="vote-btn approve" data-player="${player}" data-cat="${cat}" data-val="1">✓</button>
+          <button class="vote-btn reject" data-player="${player}" data-cat="${cat}" data-val="0">✗</button>
+        </td>
+      </tr>`;
+    });
+    html += '</tbody></table>';
+    card.innerHTML = html;
+    vt.appendChild(card);
+  });
+  document.getElementById('submit-votes-btn').style.display = 'block';
+  document.getElementById('voting-waiting').style.display = 'none';
+
+  // fake scores
+  document.getElementById('scores-title').textContent = 'Wyniki rundy 1';
+  const tbody = document.getElementById('score-tbody');
+  tbody.innerHTML = '';
+  [['Jan',8,8],['Kacper',6,6],['Ola',4,4]].forEach(([nick, round, total], i) => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td class="rank-num">${i+1}</td><td>${nick}</td><td>+${round}</td><td><strong>${total}</strong></td>`;
+    tbody.appendChild(tr);
+  });
+  document.getElementById('next-round-btn').style.display = 'block';
+  document.getElementById('new-game-btn').style.display = 'block';
+  document.getElementById('winner-banner-wrap').innerHTML = '';
+}
+
+// Preview bar buttons
+document.getElementById('preview-bar')?.querySelectorAll('[data-screen]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const target = btn.dataset.screen;
+    if (target === 'screen-draw') {
+      doLetterDraw('K');
+    } else {
+      showScreen(target);
+    }
+    document.querySelectorAll('#preview-bar [data-screen]').forEach(b => b.classList.remove('pv-active'));
+    btn.classList.add('pv-active');
+  });
+});
+
+// Activate via URL param or triple-click on h1
+if (isPreview) activatePreview();
+
+let clickCount = 0, clickTimer;
+document.querySelectorAll('h1').forEach(h => {
+  h.addEventListener('click', () => {
+    clickCount++;
+    clearTimeout(clickTimer);
+    clickTimer = setTimeout(() => { clickCount = 0; }, 600);
+    if (clickCount >= 3) {
+      clickCount = 0;
+      activatePreview();
+      showScreen('screen-home');
+      toast('Tryb podglądu aktywny 👁');
+    }
+  });
+});
 </script>
 
 <script>
