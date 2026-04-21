@@ -1445,6 +1445,7 @@ async function submitAnswers() {
 
   const cats = currentCategories.length ? currentCategories : CATEGORIES.slice(0, gameConfig.categories);
   cats.forEach((cat, i) => {
+    myAnswers[cat] = (document.getElementById(`cat-${i}`)?.value || '').trim();
   });
 
   await update(ref(db, `pm-rooms/${roomCode}/answers/${myNick}`), myAnswers);
