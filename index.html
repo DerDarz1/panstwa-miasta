@@ -1150,8 +1150,44 @@ function doAnswering(room) {
     const d = document.createElement('div');
     d.className = 'category-row';
     d.innerHTML = `<div class="category-label">${cat}</div>
-      <input class="category-input" id="cat-${i}" placeholder="Wpisz odpowiedź..." maxlength="50">`;
+      <input class="category-input" id="cat-${i}" placeholder="${room.currentLetter}..." maxlength="50"
+        data-letter="${room.currentLetter}">`;
     container.appendChild(d);
+
+    // Walidacja pierwszej litery
+    const input = d.querySelector('input');
+    input.addEventListener('input', () => {
+      const val = input.value;
+      if (!val) { input.style.borderColor = ''; input.style.boxShadow = ''; return; }
+      const firstLetter = val[0].toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+      const required = room.currentLetter.toUpperCase();
+      if (firstLetter !== required) {
+        input.value = val.slice(0, -1); // usuń ostatni znak jeśli pierwsza litera zła
+        // Jeśli pole jest puste po usunięciu — pozwól pisać od nowa
+        if (input.value.length === 0) { input.style.borderColor = ''; return; }
+      }
+      // Podświetl zielono jeśli ok
+      const current = input.value[0]?.toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+      if (current === required) {
+        input.style.borderColor = 'var(--green)';
+        input.style.boxShadow = '0 0 0 3px rgba(52,211,153,.15)';
+      }
+    });
+
+    // Przy wklejaniu też sprawdź
+    input.addEventListener('paste', (e) => {
+      setTimeout(() => {
+        const val = input.value;
+        if (!val) return;
+        const firstLetter = val[0].toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+        if (firstLetter !== room.currentLetter.toUpperCase()) {
+          input.value = '';
+          input.style.borderColor = 'var(--red)';
+          input.style.boxShadow = '0 0 0 3px rgba(248,113,113,.15)';
+          setTimeout(() => { input.style.borderColor = ''; input.style.boxShadow = ''; }, 800);
+        }
+      }, 0);
+    });
   });
 
   myAnswers = {};
