@@ -14,53 +14,598 @@
 <link rel="apple-touch-icon" href="icon-192.svg">
 <link rel="icon" type="image/svg+xml" href="icon-192.svg">
 <style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+
   :root {
-    --bg: #0d0f1a;
-    --bg2: #13162a;
-    --surface: #1a1f35;
-    --surface2: #222844;
-    --border: #2e3558;
-    --border2: #3d4570;
-    --text: #e8eaf6;
-    --muted: #7b82b0;
-    --accent: #7c6af7;
-    --accent2: #a78bfa;
-    --green: #34d399;
-    --green2: #6ee7b7;
-    --red: #f87171;
-    --gold: #fbbf24;
-    --grad: linear-gradient(135deg, #7c6af7 0%, #a78bfa 50%, #c084fc 100%);
-    --grad-green: linear-gradient(135deg, #34d399, #059669);
-    --grad-surface: linear-gradient(160deg, #1a1f35 0%, #13162a 100%);
+    --bg: #080b14;
+    --bg2: #0d1120;
+    --surface: #111827;
+    --surface2: #1a2235;
+    --border: #1e2d47;
+    --border2: #2a3f5f;
+    --text: #f0f4ff;
+    --muted: #6b7fa3;
+    --accent: #6c5ce7;
+    --accent2: #a29bfe;
+    --green: #00cec9;
+    --green2: #55efc4;
+    --red: #ff7675;
+    --gold: #fdcb6e;
+    --grad: linear-gradient(135deg, #6c5ce7 0%, #a29bfe 50%, #fd79a8 100%);
+    --grad-green: linear-gradient(135deg, #00cec9, #00b894);
+    --grad-surface: linear-gradient(160deg, #111827 0%, #080b14 100%);
+    --grad-gold: linear-gradient(135deg, #fdcb6e, #e17055);
   }
 
   * { box-sizing: border-box; margin: 0; padding: 0; }
 
   body {
     background: var(--bg);
-    background-image:
-      radial-gradient(ellipse at 20% 10%, rgba(124,106,247,.15) 0%, transparent 50%),
-      radial-gradient(ellipse at 80% 80%, rgba(192,132,252,.1) 0%, transparent 50%);
     color: var(--text);
-    font-family: 'Segoe UI', system-ui, sans-serif;
+    font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
     min-height: 100vh;
     display: flex;
     justify-content: center;
     align-items: flex-start;
+    overflow-x: hidden;
+  }
+
+  /* Animated stadium grid background */
+  body::before {
+    content: '';
+    position: fixed; inset: 0; z-index: 0;
+    background-image:
+      linear-gradient(rgba(108,92,231,.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(108,92,231,.04) 1px, transparent 1px);
+    background-size: 40px 40px;
+    mask-image: radial-gradient(ellipse at 50% 50%, black 30%, transparent 80%);
+    pointer-events: none;
+  }
+  body::after {
+    content: '';
+    position: fixed; inset: 0; z-index: 0;
+    background:
+      radial-gradient(ellipse at 15% 15%, rgba(108,92,231,.12) 0%, transparent 45%),
+      radial-gradient(ellipse at 85% 80%, rgba(253,121,168,.08) 0%, transparent 45%),
+      radial-gradient(ellipse at 50% 50%, rgba(0,206,201,.05) 0%, transparent 60%);
+    pointer-events: none;
   }
 
   #app {
     width: 100%;
     max-width: 480px;
     min-height: 100vh;
-    padding: 20px 16px 32px;
+    padding: 20px 16px 36px;
     display: flex;
     flex-direction: column;
+    position: relative; z-index: 1;
   }
 
+  /* SCREEN TRANSITIONS */
   .screen { display: none; flex-direction: column; gap: 14px; flex: 1; }
-  .screen.active { display: flex; animation: fadeIn .25s ease; }
-  @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+  .screen.active {
+    display: flex;
+    animation: screenIn .35s cubic-bezier(.22,1,.36,1);
+  }
+  .screen.exit {
+    animation: screenOut .25s ease-in forwards;
+  }
+  @keyframes screenIn {
+    from { opacity: 0; transform: translateY(24px) scale(.98); }
+    to   { opacity: 1; transform: none; }
+  }
+  @keyframes screenOut {
+    from { opacity: 1; transform: none; }
+    to   { opacity: 0; transform: translateY(-16px) scale(.98); }
+  }
+
+  /* CARDS */
+  .card {
+    background: rgba(17,24,39,.8);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 20px;
+    box-shadow: 0 8px 32px rgba(0,0,0,.4), inset 0 1px 0 rgba(255,255,255,.04);
+    backdrop-filter: blur(8px);
+    position: relative; overflow: hidden;
+  }
+  .card::before {
+    content: '';
+    position: absolute; top: 0; left: 0; right: 0; height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,.08), transparent);
+  }
+
+  /* TYPOGRAPHY */
+  h1 { font-size: 2rem; font-weight: 900; text-align: center; letter-spacing: -1px; }
+  h2 { font-size: 1.25rem; font-weight: 800; }
+  h3 { font-size: .9rem; font-weight: 600; color: var(--muted); }
+  .subtitle { color: var(--muted); text-align: center; font-size: .88rem; }
+  .section-title {
+    font-size: .68rem; color: var(--muted); font-weight: 700;
+    text-transform: uppercase; letter-spacing: .1em; margin-bottom: 8px;
+  }
+  .label { font-size: .85rem; color: var(--muted); margin-bottom: 6px; font-weight: 500; }
+
+  /* INPUTS */
+  input, select {
+    width: 100%;
+    background: rgba(8,11,20,.7);
+    border: 1px solid var(--border2);
+    border-radius: 12px;
+    padding: 13px 16px;
+    color: var(--text);
+    font-size: 1rem;
+    font-family: inherit;
+    outline: none;
+    transition: border-color .2s, box-shadow .2s, background .2s;
+  }
+  input:focus, select:focus {
+    border-color: var(--accent);
+    background: rgba(108,92,231,.06);
+    box-shadow: 0 0 0 3px rgba(108,92,231,.18);
+  }
+  select option { background: var(--surface); }
+
+  /* BUTTONS */
+  button {
+    width: 100%; padding: 15px;
+    border-radius: 14px; border: none;
+    font-size: 1rem; font-weight: 700;
+    font-family: inherit;
+    cursor: pointer;
+    transition: transform .12s, box-shadow .2s, filter .2s;
+    letter-spacing: .01em;
+    position: relative; overflow: hidden;
+  }
+  button::after {
+    content: '';
+    position: absolute; inset: 0;
+    background: rgba(255,255,255,0);
+    transition: background .15s;
+  }
+  button:hover::after { background: rgba(255,255,255,.06); }
+  button:active:not(:disabled) { transform: scale(.96); }
+  button:disabled { opacity: .3; cursor: not-allowed; }
+
+  .btn-primary {
+    background: var(--grad);
+    color: #fff;
+    box-shadow: 0 4px 24px rgba(108,92,231,.45);
+  }
+  .btn-primary:hover:not(:disabled) { box-shadow: 0 8px 32px rgba(108,92,231,.65); filter: brightness(1.05); }
+
+  .btn-secondary {
+    background: rgba(26,34,53,.9);
+    color: var(--text);
+    border: 1px solid var(--border2);
+  }
+  .btn-secondary:hover:not(:disabled) { border-color: var(--accent); }
+
+  .btn-green {
+    background: var(--grad-green);
+    color: #001a19;
+    font-weight: 900;
+    box-shadow: 0 4px 24px rgba(0,206,201,.35);
+  }
+  .btn-green:hover:not(:disabled) { box-shadow: 0 8px 32px rgba(0,206,201,.55); filter: brightness(1.05); }
+
+  .btn-danger { background: linear-gradient(135deg,#ff7675,#d63031); color: #fff; }
+
+  /* ROOM CODE */
+  .room-code {
+    font-size: 2.8rem; font-weight: 900; letter-spacing: .4em;
+    background: var(--grad);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    background-clip: text;
+    text-align: center; padding: 18px 8px;
+    border: 1px solid rgba(108,92,231,.3);
+    border-radius: 16px;
+    background-color: rgba(108,92,231,.05);
+    position: relative;
+  }
+
+  /* PLAYERS */
+  .player-list { display: flex; flex-direction: column; gap: 8px; }
+  .player-item {
+    display: flex; align-items: center; gap: 12px;
+    padding: 12px 16px;
+    background: rgba(8,11,20,.6);
+    border-radius: 14px;
+    border: 1px solid var(--border);
+    transition: all .2s;
+    animation: playerIn .3s ease both;
+  }
+  @keyframes playerIn {
+    from { opacity: 0; transform: translateX(-12px); }
+    to   { opacity: 1; transform: none; }
+  }
+  .player-item:hover { border-color: var(--border2); background: rgba(108,92,231,.06); }
+  .player-avatar {
+    width: 36px; height: 36px; border-radius: 50%;
+    background: var(--grad);
+    display: flex; align-items: center; justify-content: center;
+    font-size: .9rem; font-weight: 900; color: #fff;
+    flex-shrink: 0;
+    box-shadow: 0 0 12px rgba(108,92,231,.4);
+  }
+  .player-name { font-weight: 700; font-size: .95rem; }
+  .player-item .dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--green); margin-left: auto;
+    box-shadow: 0 0 8px var(--green);
+    animation: blink 2s ease-in-out infinite;
+  }
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.4} }
+
+  /* DRAW SCREEN */
+  #screen-draw { justify-content: center; align-items: center; text-align: center; }
+  .draw-container { display: flex; flex-direction: column; align-items: center; gap: 28px; width: 100%; }
+  .draw-title { font-size: 1rem; color: var(--muted); font-weight: 600; letter-spacing: .05em; text-transform: uppercase; }
+
+  .letter-slot {
+    width: 240px; height: 240px;
+    background: radial-gradient(ellipse at 50% 30%, rgba(108,92,231,.15), transparent 70%),
+                linear-gradient(160deg, #111827 0%, #080b14 100%);
+    border: 1px solid rgba(108,92,231,.3);
+    border-radius: 36px;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow:
+      0 0 0 1px rgba(108,92,231,.1),
+      0 0 80px rgba(108,92,231,.2),
+      0 32px 80px rgba(0,0,0,.6),
+      inset 0 1px 0 rgba(255,255,255,.07);
+    position: relative;
+    overflow: hidden;
+  }
+  .letter-slot::before {
+    content: '';
+    position: absolute; inset: 0; z-index: 2;
+    background:
+      linear-gradient(to bottom,
+        rgba(8,11,20,.97) 0%, transparent 25%,
+        transparent 75%, rgba(8,11,20,.97) 100%);
+    pointer-events: none;
+  }
+  .letter-slot::after {
+    content: '';
+    position: absolute; inset: 0; z-index: 2;
+    background:
+      linear-gradient(to right,
+        rgba(8,11,20,.9) 0%, transparent 20%,
+        transparent 80%, rgba(8,11,20,.9) 100%);
+    pointer-events: none;
+  }
+  .slot-line {
+    position: absolute; left: 20px; right: 20px;
+    top: 50%; transform: translateY(-50%);
+    height: 2px;
+    background: linear-gradient(90deg, transparent, rgba(108,92,231,.6), rgba(253,121,168,.4), transparent);
+    z-index: 3;
+    box-shadow: 0 0 8px rgba(108,92,231,.4);
+  }
+  .letter-display {
+    font-size: 10rem; font-weight: 900; line-height: 1;
+    font-family: 'Inter', system-ui, sans-serif;
+    background: var(--grad);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    background-clip: text;
+    position: relative; z-index: 4;
+    will-change: transform, opacity;
+  }
+  @keyframes slot-exit {
+    0%   { transform: translateX(0) scale(1); opacity: 1; filter: blur(0); }
+    100% { transform: translateX(-100px) scale(.6); opacity: 0; filter: blur(4px); }
+  }
+  @keyframes slot-enter {
+    0%   { transform: translateX(100px) scale(.6); opacity: 0; filter: blur(4px); }
+    65%  { transform: translateX(-8px) scale(1.08); opacity: 1; filter: blur(0); }
+    100% { transform: translateX(0) scale(1); opacity: 1; }
+  }
+  .letter-display.slot-exit  { animation: slot-exit  .1s ease-in  forwards; }
+  .letter-display.slot-enter { animation: slot-enter .13s ease-out forwards; }
+  @keyframes slot-land {
+    0%   { transform: translateX(100px) scale(.5); opacity: 0; filter: blur(6px); }
+    50%  { transform: translateX(-10px) scale(1.15); opacity: 1; filter: blur(0); }
+    70%  { transform: translateX(4px) scale(.96); }
+    85%  { transform: translateX(-2px) scale(1.02); }
+    100% { transform: translateX(0) scale(1); opacity: 1; }
+  }
+  .letter-display.slot-land {
+    animation: slot-land .6s cubic-bezier(.22,1,.36,1) forwards;
+    background: var(--grad-green);
+    -webkit-background-clip: text; background-clip: text;
+    filter: drop-shadow(0 0 20px rgba(0,206,201,.5));
+  }
+
+  /* Glow ring on land */
+  .slot-glow {
+    position: absolute; inset: -2px; border-radius: 38px; z-index: 1;
+    opacity: 0; pointer-events: none;
+    box-shadow: 0 0 0 2px var(--green), 0 0 40px rgba(0,206,201,.5);
+    transition: opacity .3s;
+  }
+  .slot-glow.active { opacity: 1; }
+
+  /* ROUND BADGE */
+  .round-badge {
+    background: rgba(108,92,231,.15);
+    border: 1px solid rgba(108,92,231,.35);
+    color: var(--accent2);
+    padding: 6px 16px; border-radius: 20px;
+    font-size: .78rem; font-weight: 800; letter-spacing: .06em;
+    text-transform: uppercase;
+    display: inline-block;
+  }
+
+  /* CATEGORIES */
+  .categories-grid { display: flex; flex-direction: column; gap: 10px; }
+  .category-row {
+    display: flex; flex-direction: column; gap: 5px;
+    animation: catIn .25s ease both;
+  }
+  @keyframes catIn {
+    from { opacity: 0; transform: translateX(-8px); }
+    to   { opacity: 1; transform: none; }
+  }
+  .category-label {
+    font-size: .72rem; color: var(--accent2); font-weight: 800;
+    text-transform: uppercase; letter-spacing: .08em;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .category-label::before {
+    content: ''; width: 3px; height: 14px;
+    background: var(--grad); border-radius: 2px;
+    flex-shrink: 0;
+  }
+  .category-input {
+    background: rgba(8,11,20,.7);
+    border: 1px solid var(--border2);
+    border-radius: 12px; padding: 12px 16px;
+    color: var(--text); font-size: .95rem; width: 100%; outline: none;
+    font-family: inherit;
+    transition: border-color .2s, box-shadow .2s, background .2s;
+  }
+  .category-input:focus {
+    border-color: var(--accent);
+    background: rgba(108,92,231,.06);
+    box-shadow: 0 0 0 3px rgba(108,92,231,.15);
+  }
+  .category-input.done {
+    border-color: var(--green);
+    background: rgba(0,206,201,.05);
+  }
+
+  /* TIMER */
+  .timer-bar { height: 6px; background: var(--border); border-radius: 3px; overflow: hidden; }
+  .timer-fill { height: 100%; background: var(--grad); transition: width 1s linear; border-radius: 3px; }
+  .timer-fill.warning { background: linear-gradient(90deg,#fdcb6e,#e17055); }
+  .timer-fill.danger  { background: linear-gradient(90deg,#ff7675,#d63031); animation: timerPulse .5s ease-in-out infinite; }
+  @keyframes timerPulse { 0%,100%{opacity:1} 50%{opacity:.6} }
+  .timer-text { font-size: .85rem; color: var(--muted); font-variant-numeric: tabular-nums; font-weight: 700; }
+
+  /* VOTING */
+  .voting-table { width: 100%; border-collapse: collapse; font-size: .85rem; }
+  .voting-table td { padding: 10px 6px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+  .voting-table tr:last-child td { border-bottom: none; }
+  .vote-btn {
+    width: 36px; height: 36px; border-radius: 10px; border: none;
+    cursor: pointer; font-size: 1rem;
+    display: inline-flex; align-items: center; justify-content: center;
+    transition: all .18s; opacity: .25;
+    font-family: inherit;
+  }
+  .vote-btn.approve { background: rgba(0,206,201,.15); color: var(--green); border: 1px solid rgba(0,206,201,.25); }
+  .vote-btn.reject  { background: rgba(255,118,117,.15); color: var(--red);  border: 1px solid rgba(255,118,117,.25); }
+  .vote-btn.chosen  { opacity: 1; transform: scale(1.15); }
+  .vote-btn.approve.chosen { background: var(--green); color: #001a19; box-shadow: 0 0 12px rgba(0,206,201,.4); }
+  .vote-btn.reject.chosen  { background: var(--red);   color: #fff;    box-shadow: 0 0 12px rgba(255,118,117,.4); }
+
+  /* SCORE TABLE */
+  .score-table { width: 100%; border-collapse: collapse; }
+  .score-table th {
+    background: rgba(8,11,20,.6); padding: 10px 14px;
+    text-align: left; color: var(--muted); font-weight: 700;
+    font-size: .72rem; text-transform: uppercase; letter-spacing: .08em;
+    border-bottom: 1px solid var(--border);
+  }
+  .score-table td { padding: 12px 14px; border-bottom: 1px solid var(--border); font-size: .9rem; }
+  .score-table tr:last-child td { border-bottom: none; }
+  .score-table tbody tr { transition: background .15s; }
+  .score-table tbody tr:hover { background: rgba(108,92,231,.05); }
+  .rank-num { font-weight: 900; color: var(--accent2); font-size: 1rem; }
+
+  /* WINNER BANNER */
+  .winner-banner {
+    text-align: center; padding: 32px 20px;
+    background: linear-gradient(135deg, rgba(253,203,110,.08), rgba(225,112,85,.05));
+    border: 1px solid rgba(253,203,110,.25);
+    border-radius: 20px;
+    box-shadow: 0 0 60px rgba(253,203,110,.08);
+    position: relative; overflow: hidden;
+  }
+  .winner-banner::before {
+    content: '';
+    position: absolute; inset: 0;
+    background: radial-gradient(ellipse at 50% 0%, rgba(253,203,110,.12), transparent 60%);
+  }
+  .winner-banner .trophy {
+    font-size: 4rem;
+    filter: drop-shadow(0 0 20px rgba(253,203,110,.6));
+    animation: trophyBounce .6s cubic-bezier(.34,1.56,.64,1) both;
+  }
+  @keyframes trophyBounce {
+    from { transform: scale(0) rotate(-10deg); opacity: 0; }
+    to   { transform: scale(1) rotate(0); opacity: 1; }
+  }
+  .winner-banner .winner-name {
+    font-size: 1.8rem; font-weight: 900;
+    background: var(--grad-gold);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin: 12px 0 4px;
+  }
+
+  /* SHARE LINK */
+  .share-link {
+    font-size: .72rem; color: var(--muted); word-break: break-all;
+    background: rgba(8,11,20,.6); padding: 8px 12px;
+    border-radius: 10px; border: 1px solid var(--border);
+    font-family: monospace;
+  }
+
+  /* MISC */
+  .flex-row { display: flex; gap: 10px; }
+  .flex-row button { flex: 1; }
+
+  .waiting-text { text-align: center; color: var(--muted); font-size: .9rem; padding: 16px; }
+  .progress-dots { display: flex; gap: 8px; justify-content: center; margin-top: 10px; }
+  .progress-dots span {
+    width: 8px; height: 8px; border-radius: 50%; background: var(--border);
+    animation: pulse-dot 1.4s ease-in-out infinite;
+  }
+  .progress-dots span:nth-child(2) { animation-delay: .2s; }
+  .progress-dots span:nth-child(3) { animation-delay: .4s; }
+  @keyframes pulse-dot {
+    0%,80%,100% { background: var(--border); transform: scale(1); }
+    40% { background: var(--accent); box-shadow: 0 0 8px var(--accent); transform: scale(1.3); }
+  }
+
+  /* TOAST */
+  .toast {
+    position: fixed; bottom: 32px; left: 50%;
+    background: rgba(17,24,39,.95);
+    border: 1px solid var(--border2);
+    border-radius: 14px; padding: 13px 24px;
+    font-size: .9rem; font-weight: 600;
+    z-index: 9998; opacity: 0;
+    pointer-events: none; max-width: 320px; text-align: center;
+    box-shadow: 0 12px 40px rgba(0,0,0,.5);
+    backdrop-filter: blur(12px);
+    transform: translateX(-50%) translateY(12px);
+    transition: opacity .25s, transform .25s;
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  /* HERO */
+  .hero-emoji {
+    font-size: 5rem;
+    filter: drop-shadow(0 0 30px rgba(108,92,231,.5));
+    animation: float 3s ease-in-out infinite;
+  }
+  @keyframes float {
+    0%,100% { transform: translateY(0) rotate(-3deg); }
+    50%      { transform: translateY(-10px) rotate(3deg); }
+  }
+
+  /* HERO TITLE GLOW */
+  .title-glow {
+    background: var(--grad);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    background-clip: text;
+    filter: drop-shadow(0 0 20px rgba(108,92,231,.3));
+  }
+
+  /* DIVIDER */
+  .divider {
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--border2), transparent);
+    margin: 4px 0;
+  }
+
+  /* DRAW CATEGORIES PREVIEW */
+  .draw-cats {
+    background: rgba(8,11,20,.6);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 16px;
+    animation: fadeIn .5s ease .2s both;
+    width: 100%;
+  }
+  @keyframes fadeIn { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:none} }
+  .draw-cats-title {
+    font-size: .68rem; color: var(--muted); font-weight: 800;
+    text-transform: uppercase; letter-spacing: .1em; margin-bottom: 10px;
+  }
+  .draw-cat-chip {
+    display: inline-flex; align-items: center; gap: 4px;
+    background: rgba(108,92,231,.1);
+    border: 1px solid rgba(108,92,231,.2);
+    border-radius: 20px; padding: 4px 10px;
+    font-size: .72rem; color: var(--accent2); font-weight: 700;
+    margin: 3px;
+    animation: chipIn .2s ease both;
+  }
+  @keyframes chipIn { from{opacity:0;transform:scale(.8)} to{opacity:1;transform:none} }
+
+  /* CONFETTI CANVAS */
+  #confetti-canvas {
+    position: fixed; inset: 0; z-index: 9990;
+    pointer-events: none;
+  }
+
+  /* ROUND HISTORY */
+  .history-toggle {
+    width: 100%; padding: 11px; border-radius: 12px;
+    background: transparent; border: 1px solid var(--border);
+    color: var(--muted); font-size: .8rem; font-weight: 700;
+    cursor: pointer; text-align: center; font-family: inherit;
+    transition: all .2s;
+  }
+  .history-toggle:hover { background: var(--surface2); color: var(--text); border-color: var(--border2); }
+  .history-card {
+    background: rgba(8,11,20,.6);
+    border: 1px solid var(--border);
+    border-radius: 14px; padding: 14px;
+    font-size: .82rem;
+  }
+  .history-round-title {
+    font-size: .68rem; color: var(--muted); font-weight: 800;
+    text-transform: uppercase; letter-spacing: .08em; margin-bottom: 8px;
+  }
+
+  /* PREVIEW BAR */
+  #preview-bar {
+    position: fixed; bottom: 0; left: 0; right: 0; z-index: 9999;
+    background: rgba(8,11,20,.97);
+    backdrop-filter: blur(16px);
+    border-top: 1px solid var(--border2);
+    padding: 8px 12px 12px;
+    display: flex; align-items: center; gap: 6px;
+    overflow-x: auto; -webkit-overflow-scrolling: touch;
+  }
+  #preview-bar::-webkit-scrollbar { display: none; }
+  .pv-btn {
+    flex-shrink: 0;
+    padding: 6px 12px; border-radius: 8px; border: 1px solid var(--border2);
+    background: var(--surface2); color: var(--muted);
+    font-size: .7rem; font-weight: 700; cursor: pointer;
+    width: auto; letter-spacing: .02em; font-family: inherit;
+    transition: all .15s;
+  }
+  .pv-btn:hover { background: var(--border); color: var(--text); }
+  .pv-btn.pv-active { background: var(--grad); color: #fff; border-color: transparent; }
+  body:has(#preview-bar[style*="flex"]) #app { padding-bottom: 64px; }
+
+  /* SCORE PODIUM ANIMATION */
+  .score-row-1 { animation: rowIn .3s ease .05s both; }
+  .score-row-2 { animation: rowIn .3s ease .15s both; }
+  .score-row-3 { animation: rowIn .3s ease .25s both; }
+  @keyframes rowIn {
+    from { opacity: 0; transform: translateX(-16px); }
+    to   { opacity: 1; transform: none; }
+  }
+
+  /* ANSWER PROGRESS */
+  .answer-progress {
+    display: flex; gap: 4px; margin-bottom: 4px;
+  }
+  .answer-progress-dot {
+    flex: 1; height: 3px; border-radius: 2px;
+    background: var(--border);
+    transition: background .3s;
+  }
+  .answer-progress-dot.filled { background: var(--grad-green); }
+</style>
 
   /* CARDS */
   .card {
@@ -479,35 +1024,39 @@
 <body>
 <div id="app">
 
+<!-- CONFETTI CANVAS -->
+<canvas id="confetti-canvas"></canvas>
+
 <!-- NICK SCREEN -->
 <div id="screen-nick" class="screen active">
-  <div style="flex:1;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:8px;padding:40px 0 24px">
+  <div style="flex:1;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:10px;padding:48px 0 28px">
     <div class="hero-emoji">⚽</div>
-    <h1 style="background:var(--grad);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text">Państwa Miasta</h1>
-    <p class="subtitle">Piłkarska edycja · Multiplayer</p>
+    <h1 class="title-glow" style="font-size:2.4rem">Państwa Miasta</h1>
+    <p class="subtitle" style="font-size:.85rem;letter-spacing:.05em;text-transform:uppercase">Piłkarska edycja · Multiplayer</p>
   </div>
   <div class="card">
     <div class="label">Twój pseudonim</div>
     <input id="nick-input" type="text" placeholder="Wpisz nick..." maxlength="20" autocomplete="off">
     <button class="btn-primary" id="nick-btn" style="margin-top:14px">Dalej →</button>
   </div>
+  <p style="text-align:center;font-size:.72rem;color:var(--muted);margin-top:8px">Nick jest zapisywany lokalnie na Twoim urządzeniu</p>
 </div>
 
 <!-- HOME SCREEN -->
 <div id="screen-home" class="screen">
-  <div style="flex:1;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:8px;padding:32px 0 20px">
+  <div style="flex:1;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:10px;padding:40px 0 24px">
     <div class="hero-emoji">⚽</div>
-    <h1 style="background:var(--grad);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text">Państwa Miasta</h1>
+    <h1 class="title-glow">Państwa Miasta</h1>
     <p class="subtitle" id="home-nick-display"></p>
   </div>
   <div class="card" style="display:flex;flex-direction:column;gap:10px">
-    <button class="btn-primary" id="create-room-btn">🏟️ Utwórz pokój</button>
+    <button class="btn-primary" id="create-room-btn">🏟️ Utwórz nowy pokój</button>
     <button class="btn-secondary" id="join-room-btn">🔗 Dołącz do pokoju</button>
   </div>
   <div class="card" id="join-form" style="display:none;flex-direction:column;gap:12px">
-    <div class="label">Kod pokoju</div>
-    <input id="join-code-input" type="text" placeholder="np. ABCD12" maxlength="6"
-      style="text-transform:uppercase;letter-spacing:.25em;font-size:1.4rem;text-align:center;font-weight:800;font-family:monospace">
+    <div class="label">Wpisz kod pokoju</div>
+    <input id="join-code-input" type="text" placeholder="ABCD12" maxlength="6"
+      style="text-transform:uppercase;letter-spacing:.3em;font-size:1.6rem;text-align:center;font-weight:900;font-family:monospace">
     <button class="btn-green" id="join-confirm-btn">Dołącz ✓</button>
   </div>
 </div>
@@ -515,17 +1064,17 @@
 <!-- LOBBY SCREEN -->
 <div id="screen-lobby" class="screen">
   <div class="card" style="text-align:center">
-    <div class="section-title">Kod pokoju</div>
+    <div class="section-title" style="margin-bottom:10px">Kod pokoju — udostępnij znajomym</div>
     <div class="room-code" id="lobby-code"></div>
     <div class="share-link" id="lobby-link" style="margin-top:10px"></div>
-    <button class="btn-secondary" id="copy-link-btn" style="margin-top:10px;padding:10px;font-size:.85rem">📋 Kopiuj link zaproszenia</button>
+    <button class="btn-secondary" id="copy-link-btn" style="margin-top:10px;padding:10px;font-size:.82rem">📋 Kopiuj link zaproszenia</button>
   </div>
   <div class="card" id="lobby-settings">
-    <h3 style="margin-bottom:14px;color:var(--text)">⚙️ Ustawienia gry</h3>
+    <h3 style="margin-bottom:14px;color:var(--text);font-size:1rem">⚙️ Ustawienia gry</h3>
     <div style="display:flex;flex-direction:column;gap:14px">
       <div>
-        <div class="section-title">Liczba kategorii: <span id="cat-count-display" style="color:var(--accent2)">5</span></div>
-        <input type="range" id="cat-count" min="2" max="40" value="5" style="width:100%;accent-color:#7c6af7;margin-top:4px">
+        <div class="section-title">Liczba kategorii: <span id="cat-count-display" style="color:var(--accent2);font-size:.85rem">5</span></div>
+        <input type="range" id="cat-count" min="2" max="40" value="5" style="width:100%;accent-color:#6c5ce7;margin-top:6px;height:4px">
       </div>
       <div class="divider"></div>
       <div>
@@ -549,24 +1098,25 @@
     </div>
   </div>
   <div class="card">
-    <h3 style="margin-bottom:12px;color:var(--text)">👥 Gracze w pokoju</h3>
+    <h3 style="margin-bottom:12px;color:var(--text);font-size:1rem">👥 Gracze w pokoju</h3>
     <div class="player-list" id="lobby-players"></div>
   </div>
   <button class="btn-green" id="start-game-btn" disabled>▶ Start gry (min. 2 graczy)</button>
-  <button class="btn-secondary" id="leave-lobby-btn" style="padding:11px;font-size:.9rem">← Wyjdź z pokoju</button>
+  <button class="btn-secondary" id="leave-lobby-btn" style="padding:11px;font-size:.88rem;opacity:.7">← Wyjdź z pokoju</button>
 </div>
 
 <!-- DRAW SCREEN -->
 <div id="screen-draw" class="screen">
   <div class="draw-container">
     <div class="round-badge" id="draw-round-badge">Runda 1</div>
-    <div class="draw-title">Losowanie litery...</div>
+    <div class="draw-title">Losowanie litery</div>
     <div class="letter-slot">
+      <div class="slot-glow" id="slot-glow"></div>
       <div class="slot-line"></div>
       <div class="letter-display" id="letter-display">?</div>
     </div>
-    <div id="draw-status" style="color:var(--muted);font-size:1rem;font-weight:500;min-height:24px"></div>
-    <div id="draw-categories" style="display:none;text-align:left;width:100%;max-width:320px"></div>
+    <div id="draw-status" style="color:var(--muted);font-size:1rem;font-weight:600;min-height:28px;letter-spacing:.02em"></div>
+    <div id="draw-categories" style="display:none;width:100%;max-width:360px"></div>
   </div>
 </div>
 
@@ -575,20 +1125,21 @@
   <div class="card" style="padding:14px 18px">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
       <div class="round-badge" id="answer-round-badge">Runda 1</div>
-      <div style="font-size:2.2rem;font-weight:900;background:var(--grad-green);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text" id="answer-letter">A</div>
-      <div id="answer-timer-text" class="timer-text" style="min-width:60px;text-align:right;font-weight:700;font-size:.95rem"></div>
+      <div style="font-size:2.4rem;font-weight:900;background:var(--grad-green);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;filter:drop-shadow(0 0 12px rgba(0,206,201,.4))" id="answer-letter">A</div>
+      <div id="answer-timer-text" class="timer-text" style="min-width:60px;text-align:right;font-size:1rem"></div>
     </div>
     <div class="timer-bar" id="answer-timer-bar-wrap" style="display:none">
       <div class="timer-fill" id="answer-timer-fill" style="width:100%"></div>
     </div>
+    <div class="answer-progress" id="answer-progress" style="margin-top:8px"></div>
   </div>
   <div class="card">
     <div class="categories-grid" id="answer-categories"></div>
   </div>
   <button class="btn-green" id="submit-answers-btn">✓ Gotowe! Wyślij odpowiedzi</button>
   <div class="waiting-text" id="answer-waiting" style="display:none">
-    Odpowiedzi wysłane — czekam na pozostałych...
-    <div id="answer-ready-count" style="font-size:.8rem;color:var(--accent2);margin-top:6px;font-weight:700"></div>
+    Odpowiedzi wysłane ✓
+    <div id="answer-ready-count" style="font-size:.82rem;color:var(--accent2);margin-top:6px;font-weight:800"></div>
     <div class="progress-dots"><span></span><span></span><span></span></div>
   </div>
 </div>
@@ -600,22 +1151,22 @@
       <h2>🗳️ Głosowanie</h2>
       <div id="voting-timer-text" style="color:var(--muted);font-size:.85rem"></div>
     </div>
-    <p style="font-size:.8rem;color:var(--muted);margin-top:4px">Oceń odpowiedzi innych graczy</p>
+    <p style="font-size:.78rem;color:var(--muted);margin-top:4px">✓ = poprawna odpowiedź · ✗ = niepoprawna</p>
   </div>
   <div id="voting-tables"></div>
   <button class="btn-primary" id="submit-votes-btn">✓ Zatwierdź głosy</button>
   <div class="waiting-text" id="voting-waiting" style="display:none">
-    Głosy wysłane — czekam na pozostałych...
-    <div id="vote-ready-count" style="font-size:.8rem;color:var(--accent2);margin-top:6px;font-weight:700"></div>
+    Głosy wysłane ✓
+    <div id="vote-ready-count" style="font-size:.82rem;color:var(--accent2);margin-top:6px;font-weight:800"></div>
     <div class="progress-dots"><span></span><span></span><span></span></div>
   </div>
 </div>
 
 <!-- SCOREBOARD SCREEN -->
 <div id="screen-scores" class="screen">
-  <div class="card" style="text-align:center;padding:18px">
+  <div class="card" style="text-align:center;padding:20px">
     <div style="font-size:2rem">📊</div>
-    <h2 id="scores-title" style="margin-top:6px">Wyniki rundy 1</h2>
+    <h2 id="scores-title" style="margin-top:6px;font-size:1.4rem">Wyniki rundy 1</h2>
   </div>
   <div id="winner-banner-wrap"></div>
   <div class="card" style="padding:0;overflow:hidden">
@@ -810,6 +1361,50 @@ function soundWin() {
   } catch(e) {}
 }
 
+// --- CONFETTI ---
+function launchConfetti(duration = 3000) {
+  const canvas = document.getElementById('confetti-canvas');
+  const ctx = canvas.getContext('2d');
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+
+  const colors = ['#6c5ce7','#a29bfe','#fd79a8','#00cec9','#fdcb6e','#55efc4','#fff'];
+  const particles = Array.from({length: 120}, () => ({
+    x: Math.random() * canvas.width,
+    y: -10 - Math.random() * 100,
+    r: 4 + Math.random() * 6,
+    d: 1 + Math.random() * 3,
+    color: colors[Math.floor(Math.random() * colors.length)],
+    tilt: Math.random() * 10 - 5,
+    tiltAngle: 0,
+    tiltSpeed: 0.05 + Math.random() * 0.1,
+    shape: Math.random() > .5 ? 'rect' : 'circle',
+  }));
+
+  let start = null;
+  function draw(ts) {
+    if (!start) start = ts;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    particles.forEach(p => {
+      p.tiltAngle += p.tiltSpeed;
+      p.y += p.d;
+      p.x += Math.sin(p.tiltAngle) * 1.5;
+      p.tilt = Math.sin(p.tiltAngle) * 12;
+      ctx.save();
+      ctx.translate(p.x, p.y);
+      ctx.rotate(p.tilt * Math.PI / 180);
+      ctx.fillStyle = p.color;
+      ctx.globalAlpha = Math.max(0, 1 - (ts - start) / duration);
+      if (p.shape === 'rect') ctx.fillRect(-p.r/2, -p.r/2, p.r, p.r * 1.6);
+      else { ctx.beginPath(); ctx.arc(0, 0, p.r/2, 0, Math.PI*2); ctx.fill(); }
+      ctx.restore();
+    });
+    if (ts - start < duration) requestAnimationFrame(draw);
+    else ctx.clearRect(0, 0, canvas.width, canvas.height);
+  }
+  requestAnimationFrame(draw);
+}
+
 // --- HASH ROUTING ---
 const SCREEN_HASH = {
   'screen-nick':    '#nick',
@@ -823,12 +1418,19 @@ const SCREEN_HASH = {
 const HASH_SCREEN = Object.fromEntries(Object.entries(SCREEN_HASH).map(([k,v]) => [v,k]));
 
 function showScreen(id, pushHash = true) {
-  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-  document.getElementById(id).classList.add('active');
+  const current = document.querySelector('.screen.active');
+  if (current && current.id !== id) {
+    current.classList.add('exit');
+    setTimeout(() => current.classList.remove('exit', 'active'), 250);
+  }
+  setTimeout(() => {
+    document.querySelectorAll('.screen').forEach(s => { if (s.id !== id) s.classList.remove('active'); });
+    document.getElementById(id).classList.add('active');
+  }, current && current.id !== id ? 80 : 0);
+
   if (pushHash && SCREEN_HASH[id]) {
     history.pushState({ screen: id }, '', SCREEN_HASH[id]);
   }
-  // update preview bar active state
   document.querySelectorAll('#preview-bar [data-screen]').forEach(b => {
     b.classList.toggle('pv-active', b.dataset.screen === id);
   });
@@ -1118,6 +1720,10 @@ function doLetterDraw(letter, roomData) {
     status.textContent = `Litera: ${letter}`;
     soundLand();
 
+    // Glow ring
+    const glow = document.getElementById('slot-glow');
+    if (glow) { glow.classList.add('active'); setTimeout(() => glow.classList.remove('active'), 2000); }
+
     // Show categories preview
     if (currentCategories.length) {
       const dc = document.getElementById('draw-categories');
@@ -1193,6 +1799,36 @@ function doAnswering(room) {
   myAnswers = {};
   document.getElementById('submit-answers-btn').style.display = 'block';
   document.getElementById('answer-waiting').style.display = 'none';
+
+  // Progress dots
+  const prog = document.getElementById('answer-progress');
+  if (prog) {
+    prog.innerHTML = cats.map((_, i) => `<div class="answer-progress-dot" id="prog-${i}"></div>`).join('');
+  }
+
+  // Auto-focus first input, auto-advance on Enter
+  setTimeout(() => {
+    const first = document.getElementById('cat-0');
+    if (first) first.focus();
+  }, 100);
+
+  cats.forEach((_, i) => {
+    const inp = document.getElementById(`cat-${i}`);
+    if (!inp) return;
+    inp.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        const next = document.getElementById(`cat-${i+1}`);
+        if (next) next.focus();
+      }
+    });
+    inp.addEventListener('input', () => {
+      const dot = document.getElementById(`prog-${i}`);
+      if (dot) dot.classList.toggle('filled', inp.value.trim().length > 0);
+      // Mark input as done
+      inp.classList.toggle('done', inp.value.trim().length > 0);
+    });
+  });
 
   if (gameConfig.timeLimit > 0) startAnswerTimer(gameConfig.timeLimit, room.answerStartTime);
 }
@@ -1412,7 +2048,7 @@ function doScores(room) {
   tbody.innerHTML = '';
   players.forEach((p, i) => {
     const tr = document.createElement('tr');
-    const bonus = roundScores[p.nick] > 0 ? '' : '';
+    tr.className = `score-row-${i+1}`;
     tr.innerHTML = `<td class="rank-num">${i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : i+1}</td>
       <td>${p.nick}</td>
       <td style="color:var(--green);font-weight:700">+${roundScores[p.nick] || 0}</td>
@@ -1452,7 +2088,7 @@ function doScores(room) {
     histWrap.style.display = 'none';
   }
 
-  if (isLastRound) soundWin();
+  if (isLastRound) { soundWin(); launchConfetti(4000); }
 
   document.getElementById('next-round-btn').style.display = (!isLastRound && isHost) ? 'block' : 'none';
   document.getElementById('new-game-btn').style.display = 'block';
