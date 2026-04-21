@@ -649,10 +649,9 @@
 </div>
 
 <!-- HOME SCREEN -->
-<div id="screen-home" class="screen" style="position:relative">
-  <canvas id="ball-canvas" style="position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:0"></canvas>
-  <div style="flex:1;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:10px;padding:40px 0 24px;position:relative;z-index:1">
-    <div class="hero-emoji" id="home-ball-emoji" style="cursor:grab;touch-action:none">⚽</div>
+<div id="screen-home" class="screen">
+  <div style="flex:1;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:10px;padding:40px 0 24px">
+    <div class="hero-emoji" id="home-ball" style="cursor:grab;touch-action:none;user-select:none;position:relative;z-index:1">⚽</div>
     <h1 class="title-glow">Państwa Miasta</h1>
     <p class="subtitle" id="home-nick-display"></p>
   </div>
@@ -1082,159 +1081,128 @@ function genCode() {
 
 // --- BALL PHYSICS ---
 (function initBall() {
-  const canvas = document.getElementById('ball-canvas');
-  if (!canvas) return;
-  const ctx = canvas.getContext('2d');
+  const ball = document.getElementById('home-ball');
+  if (!ball) return;
 
-  const R = 28; // radius
-  let W, H;
-  let bx, by, vx = 3, vy = -4;
+  let flying = false;
+  let bx, by, vx = 0, vy = 0;
   let grabbed = false;
-  let grabOffX = 0, grabOffY = 0;
   let lastX = 0, lastY = 0, lastT = 0;
-  let trail = [];
-  let spin = 0; // rotation angle
   let raf;
+  const SIZE = 72; // approx emoji size px
 
-  function resize() {
-    W = canvas.width  = window.innerWidth;
-    H = canvas.height = window.innerHeight;
-    if (!bx) { bx = W / 2; by = H * 0.35; }
-  }
-  resize();
-  window.addEventListener('resize', resize);
+  // Levitate animation when idle
+  ball.style.animation = 'float 3s ease-in-out infinite';
 
-  function drawBall(x, y, angle) {
-    ctx.save();
-    ctx.translate(x, y);
-    ctx.rotate(angle);
-
-    // Shadow
-    ctx.shadowColor = 'rgba(0,206,201,.35)';
-    ctx.shadowBlur = 18;
-
-    // Ball body
-    ctx.beginPath();
-    ctx.arc(0, 0, R, 0, Math.PI * 2);
-    const grad = ctx.createRadialGradient(-R*.3, -R*.3, R*.1, 0, 0, R);
-    grad.addColorStop(0, '#fff');
-    grad.addColorStop(.4, '#e0e8ff');
-    grad.addColorStop(1, '#6c5ce7');
-    ctx.fillStyle = grad;
-    ctx.fill();
-
-    // Pentagon patches
-    ctx.shadowBlur = 0;
-    ctx.fillStyle = 'rgba(20,20,40,.75)';
-    const pts = [[0,-R*.55],[R*.52,-R*.17],[R*.32,R*.45],[-R*.32,R*.45],[-R*.52,-R*.17]];
-    ctx.beginPath();
-    pts.forEach(([px,py],i) => i===0 ? ctx.moveTo(px,py) : ctx.lineTo(px,py));
-    ctx.closePath(); ctx.fill();
-
-    // Smaller patches around
-    [[0,R*.55],[R*.52,R*.17],[R*.32,-R*.45],[-R*.32,-R*.45],[-R*.52,R*.17]].forEach(([px,py]) => {
-      ctx.beginPath();
-      ctx.arc(px, py, R*.18, 0, Math.PI*2);
-      ctx.fill();
-    });
-
-    ctx.restore();
-  }
-
-  function loop() {
-    ctx.clearRect(0, 0, W, H);
-
-    // Only animate when home screen is active
-    if (!document.getElementById('screen-home')?.classList.contains('active')) {
-      raf = requestAnimationFrame(loop);
-      return;
-    }
-
-    if (!grabbed) {
-      bx += vx; by += vy;
-      vy += 0.18; // gravity
-      spin += vx * 0.03;
-
-      // Bounce walls
-      if (bx - R < 0)  { bx = R;  vx = Math.abs(vx) * 0.85; spin = vx * 0.04; }
-      if (bx + R > W)  { bx = W-R; vx = -Math.abs(vx) * 0.85; spin = vx * 0.04; }
-      if (by - R < 0)  { by = R;  vy = Math.abs(vy) * 0.8; }
-      if (by + R > H)  { by = H-R; vy = -Math.abs(vy) * 0.82;
-        vx *= 0.92; // friction on floor
-        if (Math.abs(vy) < 1.5) vy = -1.5; // min bounce
-      }
-
-      // Trail
-      trail.push({x: bx, y: by, a: 0.4});
-      if (trail.length > 8) trail.shift();
-      trail.forEach((t, i) => {
-        ctx.save();
-        ctx.globalAlpha = t.a * (i / trail.length) * 0.5;
-        ctx.beginPath();
-        ctx.arc(t.x, t.y, R * (i / trail.length) * 0.7, 0, Math.PI*2);
-        ctx.fillStyle = 'rgba(108,92,231,.3)';
-        ctx.fill();
-        ctx.restore();
-      });
-    } else {
-      trail = [];
-      spin += (vx || 0) * 0.02;
-    }
-
-    drawBall(bx, by, spin);
-    raf = requestAnimationFrame(loop);
-  }
-  loop();
-
-  // Pointer events — grab & throw
   function getPos(e) {
     const t = e.touches ? e.touches[0] : e;
     return { x: t.clientX, y: t.clientY };
   }
 
-  function onDown(e) {
-    const { x, y } = getPos(e);
-    const dx = x - bx, dy = y - by;
-    if (Math.sqrt(dx*dx + dy*dy) < R + 16) {
-      grabbed = true;
-      grabOffX = dx; grabOffY = dy;
-      lastX = x; lastY = y; lastT = Date.now();
-      vx = 0; vy = 0;
-      canvas.style.pointerEvents = 'auto';
-      e.preventDefault();
+  function startFly(startX, startY) {
+    flying = true;
+    ball.style.animation = 'none';
+    ball.style.position = 'fixed';
+    ball.style.left = (startX - SIZE/2) + 'px';
+    ball.style.top  = (startY - SIZE/2) + 'px';
+    ball.style.margin = '0';
+    ball.style.zIndex = '9990';
+    bx = startX; by = startY;
+  }
+
+  function stopFly() {
+    flying = false;
+    ball.style.position = '';
+    ball.style.left = '';
+    ball.style.top = '';
+    ball.style.margin = '';
+    ball.style.zIndex = '';
+    ball.style.transform = '';
+    ball.style.animation = 'float 3s ease-in-out infinite';
+    cancelAnimationFrame(raf);
+  }
+
+  function loop() {
+    if (!flying) return;
+    const W = window.innerWidth, H = window.innerHeight;
+    const r = SIZE / 2;
+
+    bx += vx; by += vy;
+    vy += 0.45; // gravity
+    vx *= 0.995; // air resistance
+
+    // Bounce
+    if (bx - r < 0)  { bx = r;   vx =  Math.abs(vx) * 0.75; }
+    if (bx + r > W)  { bx = W-r; vx = -Math.abs(vx) * 0.75; }
+    if (by - r < 0)  { by = r;   vy =  Math.abs(vy) * 0.7;  }
+    if (by + r > H)  { by = H-r; vy = -Math.abs(vy) * 0.78;
+      vx *= 0.88;
+      if (Math.abs(vy) < 2) vy = -2;
     }
+
+    // Spin based on vx
+    const rot = (bx / 30) * 20;
+    ball.style.left = (bx - r) + 'px';
+    ball.style.top  = (by - r) + 'px';
+    ball.style.transform = `rotate(${rot}deg)`;
+
+    // Stop if barely moving
+    if (Math.abs(vx) < 0.3 && Math.abs(vy) < 0.5 && by + r >= H - 2) {
+      stopFly();
+      return;
+    }
+
+    raf = requestAnimationFrame(loop);
+  }
+
+  // Touch/mouse down on ball
+  ball.addEventListener('mousedown', onDown);
+  ball.addEventListener('touchstart', onDown, { passive: false });
+
+  function onDown(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    const { x, y } = getPos(e);
+    grabbed = true;
+    vx = 0; vy = 0;
+    lastX = x; lastY = y; lastT = Date.now();
+
+    if (!flying) startFly(x, y);
+
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('touchmove', onMove, { passive: false });
+    window.addEventListener('mouseup', onUp);
+    window.addEventListener('touchend', onUp);
   }
 
   function onMove(e) {
     if (!grabbed) return;
+    e.preventDefault();
     const { x, y } = getPos(e);
     const now = Date.now();
-    const dt = Math.max(1, now - lastT);
-    vx = (x - lastX) / dt * 16;
-    vy = (y - lastY) / dt * 16;
+    const dt = Math.max(8, now - lastT);
+    vx = (x - lastX) / dt * 14;
+    vy = (y - lastY) / dt * 14;
     lastX = x; lastY = y; lastT = now;
-    bx = x - grabOffX;
-    by = y - grabOffY;
-    e.preventDefault();
+    bx = x; by = y;
+    ball.style.left = (bx - SIZE/2) + 'px';
+    ball.style.top  = (by - SIZE/2) + 'px';
   }
 
-  function onUp(e) {
-    if (!grabbed) return;
+  function onUp() {
     grabbed = false;
-    // Cap velocity
-    const speed = Math.sqrt(vx*vx + vy*vy);
-    if (speed > 28) { vx = vx/speed*28; vy = vy/speed*28; }
-    if (speed < 2)  { vx = (Math.random()-0.5)*6; vy = -4; }
-    canvas.style.pointerEvents = 'none';
-  }
+    window.removeEventListener('mousemove', onMove);
+    window.removeEventListener('touchmove', onMove);
+    window.removeEventListener('mouseup', onUp);
+    window.removeEventListener('touchend', onUp);
 
-  // Listen on whole window so drag works outside canvas
-  window.addEventListener('mousedown',  onDown, { passive: false });
-  window.addEventListener('mousemove',  onMove, { passive: false });
-  window.addEventListener('mouseup',    onUp);
-  window.addEventListener('touchstart', onDown, { passive: false });
-  window.addEventListener('touchmove',  onMove, { passive: false });
-  window.addEventListener('touchend',   onUp);
+    // Cap speed
+    const speed = Math.sqrt(vx*vx + vy*vy);
+    if (speed > 30) { vx = vx/speed*30; vy = vy/speed*30; }
+    if (speed < 1)  { vx = (Math.random()-.5)*8; vy = -8; }
+
+    raf = requestAnimationFrame(loop);
+  }
 })();
 
 // --- NICK ---
