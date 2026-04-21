@@ -1089,9 +1089,11 @@ function genCode() {
   let grabbed = false;
   let lastX = 0, lastY = 0, lastT = 0;
   let raf;
-  const SIZE = 72; // approx emoji size px
+  let bounceCount = 0;
+  let returning = false;
+  const SIZE = 72;
+  const MAX_BOUNCES = 15;
 
-  // Levitate animation when idle
   ball.style.animation = 'float 3s ease-in-out infinite';
 
   function getPos(e) {
@@ -1099,76 +1101,96 @@ function genCode() {
     return { x: t.clientX, y: t.clientY };
   }
 
+  function getHomePos() {
+    // Center of screen horizontally, ~35% vertically
+    return { x: window.innerWidth / 2, y: window.innerHeight * 0.32 };
+  }
+
   function startFly(startX, startY) {
     flying = true;
+    returning = false;
+    bounceCount = 0;
     ball.style.animation = 'none';
     ball.style.position = 'fixed';
     ball.style.left = (startX - SIZE/2) + 'px';
     ball.style.top  = (startY - SIZE/2) + 'px';
     ball.style.margin = '0';
     ball.style.zIndex = '9990';
+    ball.style.transition = '';
     bx = startX; by = startY;
   }
 
-  function stopFly() {
-    flying = false;
-    ball.style.position = '';
-    ball.style.left = '';
-    ball.style.top = '';
-    ball.style.margin = '';
-    ball.style.zIndex = '';
-    ball.style.transform = '';
-    ball.style.animation = 'float 3s ease-in-out infinite';
+  function returnHome() {
+    returning = true;
     cancelAnimationFrame(raf);
+    const home = getHomePos();
+
+    // Smooth CSS transition back to home position
+    ball.style.transition = 'left .7s cubic-bezier(.34,1.2,.64,1), top .7s cubic-bezier(.34,1.2,.64,1), transform .7s ease';
+    ball.style.left = (home.x - SIZE/2) + 'px';
+    ball.style.top  = (home.y - SIZE/2) + 'px';
+    ball.style.transform = 'rotate(0deg)';
+
+    setTimeout(() => {
+      // Back to normal flow
+      ball.style.transition = '';
+      ball.style.position = '';
+      ball.style.left = '';
+      ball.style.top = '';
+      ball.style.margin = '';
+      ball.style.zIndex = '';
+      ball.style.transform = '';
+      ball.style.animation = 'float 3s ease-in-out infinite';
+      flying = false;
+      returning = false;
+      bounceCount = 0;
+    }, 750);
   }
 
   function loop() {
-    if (!flying) return;
+    if (!flying || returning) return;
     const W = window.innerWidth, H = window.innerHeight;
     const r = SIZE / 2;
 
     bx += vx; by += vy;
-    vy += 0.45; // gravity
-    vx *= 0.995; // air resistance
+    vy += 0.45;
+    vx *= 0.995;
 
-    // Bounce
-    if (bx - r < 0)  { bx = r;   vx =  Math.abs(vx) * 0.75; }
-    if (bx + r > W)  { bx = W-r; vx = -Math.abs(vx) * 0.75; }
-    if (by - r < 0)  { by = r;   vy =  Math.abs(vy) * 0.7;  }
-    if (by + r > H)  { by = H-r; vy = -Math.abs(vy) * 0.78;
-      vx *= 0.88;
+    let bounced = false;
+    if (bx - r < 0)  { bx = r;   vx =  Math.abs(vx) * 0.75; bounced = true; }
+    if (bx + r > W)  { bx = W-r; vx = -Math.abs(vx) * 0.75; bounced = true; }
+    if (by - r < 0)  { by = r;   vy =  Math.abs(vy) * 0.7;  bounced = true; }
+    if (by + r > H)  { by = H-r; vy = -Math.abs(vy) * 0.78; vx *= 0.88;
       if (Math.abs(vy) < 2) vy = -2;
+      bounced = true;
     }
 
-    // Spin based on vx
+    if (bounced) {
+      bounceCount++;
+      if (bounceCount >= MAX_BOUNCES) { returnHome(); return; }
+    }
+
     const rot = (bx / 30) * 20;
     ball.style.left = (bx - r) + 'px';
     ball.style.top  = (by - r) + 'px';
     ball.style.transform = `rotate(${rot}deg)`;
 
-    // Stop if barely moving
-    if (Math.abs(vx) < 0.3 && Math.abs(vy) < 0.5 && by + r >= H - 2) {
-      stopFly();
-      return;
-    }
-
     raf = requestAnimationFrame(loop);
   }
 
-  // Touch/mouse down on ball
   ball.addEventListener('mousedown', onDown);
   ball.addEventListener('touchstart', onDown, { passive: false });
 
   function onDown(e) {
+    if (returning) return;
     e.preventDefault();
     e.stopPropagation();
     const { x, y } = getPos(e);
     grabbed = true;
     vx = 0; vy = 0;
     lastX = x; lastY = y; lastT = Date.now();
-
     if (!flying) startFly(x, y);
-
+    else { cancelAnimationFrame(raf); ball.style.transition = ''; }
     window.addEventListener('mousemove', onMove);
     window.addEventListener('touchmove', onMove, { passive: false });
     window.addEventListener('mouseup', onUp);
@@ -1191,16 +1213,14 @@ function genCode() {
 
   function onUp() {
     grabbed = false;
+    bounceCount = 0; // reset on new throw
     window.removeEventListener('mousemove', onMove);
     window.removeEventListener('touchmove', onMove);
     window.removeEventListener('mouseup', onUp);
     window.removeEventListener('touchend', onUp);
-
-    // Cap speed
     const speed = Math.sqrt(vx*vx + vy*vy);
     if (speed > 30) { vx = vx/speed*30; vy = vy/speed*30; }
     if (speed < 1)  { vx = (Math.random()-.5)*8; vy = -8; }
-
     raf = requestAnimationFrame(loop);
   }
 })();
