@@ -1593,9 +1593,10 @@ if (urlRoom && myNick) {
       ball.x = W/2 + (ballAnim.tx-W/2)*ease;
       ball.y = (H-30) + (ballAnim.ty-(H-30))*ease;
       const sc = 1 - ease*.45;
-      // GK dives toward shot
-      const targetGK = ballAnim.tx;
-      gkX += (targetGK - gkX) * 0.12;
+      // GK dives toward shot but with random error
+      const error = (Math.random() - 0.5) * GW * 0.35;
+      const targetGK = ballAnim.tx + error;
+      gkX += (targetGK - gkX) * 0.09;
       drawGK(gkX);
       drawBall(ball.x, ball.y, ball.r*sc);
       if (p >= 1) { phase = 'result'; resolveShot(); }
@@ -1623,7 +1624,7 @@ if (urlRoom && myNick) {
       scoreBot++;
     } else {
       const dist = Math.abs(gkX - tx);
-      if (dist < GW*0.26) {
+      if (dist < GW*0.14) {
         resultMsg = '🧤 Obroniony!'; resultColor = '#f87171';
         document.getElementById('pk-msg').textContent = '🧤 Bramkarz obronił! Kliknij żeby spróbować ponownie';
         document.getElementById('pk-msg').style.color = '#f87171';
