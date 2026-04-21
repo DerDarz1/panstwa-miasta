@@ -640,6 +640,7 @@ let timerInterval = null;
 let currentRound = 1;
 let answersSubmitted = false;
 let votesSubmitted = false;
+let currentCategories = [];
 
 // --- HASH ROUTING ---
 const SCREEN_HASH = {
@@ -875,10 +876,13 @@ function renderLobbyPlayers(players) {
 async function startGame() {
   if (!isHost) return;
   const letter = LETTERS[Math.floor(Math.random() * LETTERS.length)];
+  const shuffled = [...CATEGORIES].sort(() => Math.random() - .5);
+  const roundCategories = shuffled.slice(0, gameConfig.categories);
   await update(roomRef, {
     status: 'letter-draw',
     currentLetter: letter,
     round: 1,
+    roundCategories,
     answers: null,
     votes: null,
     roundScores: null
@@ -946,7 +950,8 @@ function doAnswering(room) {
   document.getElementById('answer-round-badge').textContent = `Runda ${currentRound}`;
   document.getElementById('answer-letter').textContent = room.currentLetter;
 
-  const cats = CATEGORIES.slice(0, gameConfig.categories);
+  const cats = room.roundCategories || CATEGORIES.slice(0, gameConfig.categories);
+  currentCategories = cats;
   const container = document.getElementById('answer-categories');
   container.innerHTML = '';
   cats.forEach((cat, i) => {
@@ -988,9 +993,8 @@ async function submitAnswers() {
   if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
   document.getElementById('answer-timer-bar-wrap').style.display = 'none';
 
-  const cats = CATEGORIES.slice(0, gameConfig.categories);
+  const cats = currentCategories.length ? currentCategories : CATEGORIES.slice(0, gameConfig.categories);
   cats.forEach((cat, i) => {
-    myAnswers[cat] = (document.getElementById(`cat-${i}`)?.value || '').trim();
   });
 
   await update(ref(db, `pm-rooms/${roomCode}/answers/${myNick}`), myAnswers);
@@ -1018,7 +1022,7 @@ function doVoting(room) {
   showScreen('screen-voting');
   const answers = room.answers || {};
   const players = Object.keys(answers);
-  const cats = CATEGORIES.slice(0, gameConfig.categories);
+  const cats = room.roundCategories || currentCategories.length ? (room.roundCategories || currentCategories) : CATEGORIES.slice(0, gameConfig.categories);
   myVotes = {};
 
   const container = document.getElementById('voting-tables');
@@ -1093,7 +1097,7 @@ async function checkAllVoted() {
 async function calculateAndSaveScores(room) {
   const answers = room.answers || {};
   const votes = room.votes || {};
-  const cats = CATEGORIES.slice(0, gameConfig.categories);
+  const cats = room.roundCategories || CATEGORIES.slice(0, gameConfig.categories);
   const roundScores = {};
 
   Object.keys(answers).forEach(p => { roundScores[p] = 0; });
@@ -1154,10 +1158,13 @@ function doScores(room) {
 async function nextRound() {
   if (!isHost) return;
   const letter = LETTERS[Math.floor(Math.random() * LETTERS.length)];
+  const shuffled = [...CATEGORIES].sort(() => Math.random() - .5);
+  const roundCategories = shuffled.slice(0, gameConfig.categories);
   await update(roomRef, {
     status: 'letter-draw',
     currentLetter: letter,
     round: currentRound + 1,
+    roundCategories,
     answers: null,
     votes: null,
     roundScores: null
