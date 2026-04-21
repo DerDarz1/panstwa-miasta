@@ -703,22 +703,112 @@ function getAudio() {
   if (!audioCtx) audioCtx = new AudioCtx();
   return audioCtx;
 }
-function playTone(freq, type = 'sine', duration = 0.12, vol = 0.15) {
+
+// Klik jak w CS case opening — krótki mechaniczny trzask
+function soundTick(pitch = 1) {
+  try {
+    const ctx = getAudio();
+    const t = ctx.currentTime;
+
+    // Noise burst (mechaniczny klik)
+    const buf = ctx.createBuffer(1, ctx.sampleRate * 0.04, ctx.sampleRate);
+    const data = buf.getChannelData(0);
+    for (let i = 0; i < data.length; i++) data[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / data.length, 3);
+    const src = ctx.createBufferSource();
+    src.buffer = buf;
+
+    // Bandpass filter — nadaje "klik" charakter
+    const bp = ctx.createBiquadFilter();
+    bp.type = 'bandpass';
+    bp.frequency.value = 1800 * pitch;
+    bp.Q.value = 0.8;
+
+    const gain = ctx.createGain();
+    gain.gain.setValueAtTime(0.35, t);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.04);
+
+    src.connect(bp); bp.connect(gain); gain.connect(ctx.destination);
+    src.start(t);
+  } catch(e) {}
+}
+
+// Końcowy "ding" jak wylosowanie skina
+function soundLand() {
+  try {
+    const ctx = getAudio();
+    const t = ctx.currentTime;
+
+    // Metaliczny dzwonek — kilka harmonicznych
+    [[880, 0.0, 0.25, 0.18], [1760, 0.01, 0.2, 0.10], [2640, 0.02, 0.15, 0.06]].forEach(([freq, delay, dur, vol]) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.value = freq;
+      gain.gain.setValueAtTime(0, t + delay);
+      gain.gain.linearRampToValueAtTime(vol, t + delay + 0.01);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + delay + dur);
+      osc.connect(gain); gain.connect(ctx.destination);
+      osc.start(t + delay); osc.stop(t + delay + dur);
+    });
+
+    // Krótki szum uderzenia na początku
+    const buf = ctx.createBuffer(1, ctx.sampleRate * 0.06, ctx.sampleRate);
+    const data = buf.getChannelData(0);
+    for (let i = 0; i < data.length; i++) data[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / data.length, 2);
+    const src = ctx.createBufferSource();
+    src.buffer = buf;
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0.2, t);
+    g.gain.exponentialRampToValueAtTime(0.001, t + 0.06);
+    src.connect(g); g.connect(ctx.destination);
+    src.start(t);
+  } catch(e) {}
+}
+
+function soundSend() {
+  try {
+    const ctx = getAudio();
+    const t = ctx.currentTime;
+    [440, 660].forEach((freq, i) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sine'; osc.frequency.value = freq;
+      gain.gain.setValueAtTime(0.12, t + i * 0.06);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + i * 0.06 + 0.12);
+      osc.connect(gain); gain.connect(ctx.destination);
+      osc.start(t + i * 0.06); osc.stop(t + i * 0.06 + 0.12);
+    });
+  } catch(e) {}
+}
+
+function soundVote() {
   try {
     const ctx = getAudio();
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
+    osc.type = 'triangle'; osc.frequency.value = 330;
+    gain.gain.setValueAtTime(0.08, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.08);
     osc.connect(gain); gain.connect(ctx.destination);
-    osc.type = type; osc.frequency.value = freq;
-    gain.gain.setValueAtTime(vol, ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + duration);
-    osc.start(); osc.stop(ctx.currentTime + duration);
+    osc.start(); osc.stop(ctx.currentTime + 0.08);
   } catch(e) {}
 }
-function soundLand()   { playTone(523, 'sine', .15, .2); setTimeout(() => playTone(784, 'sine', .2, .18), 80); }
-function soundSend()   { playTone(440, 'sine', .08, .1); setTimeout(() => playTone(660, 'sine', .12, .1), 60); }
-function soundVote()   { playTone(330, 'triangle', .08, .08); }
-function soundWin()    { [523,659,784,1047].forEach((f,i) => setTimeout(() => playTone(f,'sine',.2,.15), i*80)); }
+
+function soundWin() {
+  try {
+    const ctx = getAudio();
+    [523, 659, 784, 1047].forEach((f, i) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sine'; osc.frequency.value = f;
+      const t = ctx.currentTime + i * 0.1;
+      gain.gain.setValueAtTime(0.15, t);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.25);
+      osc.connect(gain); gain.connect(ctx.destination);
+      osc.start(t); osc.stop(t + 0.25);
+    });
+  } catch(e) {}
+}
 
 // --- HASH ROUTING ---
 const SCREEN_HASH = {
@@ -1019,6 +1109,9 @@ function doLetterDraw(letter, roomData) {
       // slow down near end
       const delay = i < 20 ? 0 : (i - 20) * 18;
       if (delay > 0) await new Promise(r => setTimeout(r, delay));
+      // pitch rośnie przy zwalnianiu — jak CS case
+      const pitch = i < 20 ? 0.8 : 0.8 + (i - 20) * 0.04;
+      if (!isLast) soundTick(pitch);
       await slotTick(next, isLast);
     }
 
