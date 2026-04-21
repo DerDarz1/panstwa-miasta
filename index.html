@@ -1358,12 +1358,13 @@ function applyLobbySettings() {
   document.getElementById('cat-count-display').textContent = gameConfig.categories;
   document.getElementById('time-limit-select').value = gameConfig.timeLimit;
   document.getElementById('max-rounds-select').value = gameConfig.maxRounds;
-  // Guests can't change settings
-  if (!isHost) {
-    ['cat-count','time-limit-select','max-rounds-select'].forEach(id => {
-      document.getElementById(id).disabled = true;
-    });
-  }
+  const disabled = !isHost;
+  ['cat-count','time-limit-select','max-rounds-select'].forEach(id => {
+    document.getElementById(id).disabled = disabled;
+  });
+  // Hide settings card for guests
+  document.getElementById('lobby-settings').style.opacity = disabled ? '.5' : '1';
+  document.getElementById('lobby-settings').style.pointerEvents = disabled ? 'none' : '';
 }
 
 function leaveRoom() {
@@ -1385,6 +1386,20 @@ function handleRoomUpdate(snap) {
   currentRound = room.round || 1;
 
   const players = Object.values(room.players || {});
+
+  // Notify host when someone leaves during game
+  if (isHost && room.status !== 'lobby') {
+    const prevCount = window._prevPlayerCount || players.length;
+    if (players.length < prevCount) {
+      const prevNicks = window._prevPlayerNicks || [];
+      const currentNicks = players.map(p => p.nick);
+      const left = prevNicks.filter(n => !currentNicks.includes(n));
+      if (left.length) toast(`⚠️ ${left.join(', ')} opuścił grę`, 5000);
+    }
+    window._prevPlayerCount = players.length;
+    window._prevPlayerNicks = players.map(p => p.nick);
+  }
+
   renderLobbyPlayers(players);
 
   const active = document.querySelector('.screen.active')?.id;
@@ -1638,12 +1653,16 @@ async function submitAnswers() {
     myAnswers[cat] = (document.getElementById(`cat-${i}`)?.value || '').trim();
   });
 
-  await update(ref(db, `pm-rooms/${roomCode}/answers/${myNick}`), myAnswers);
+  try {
+    await update(ref(db, `pm-rooms/${roomCode}/answers/${myNick}`), myAnswers);
+  } catch(e) {
+    // retry once
+    await new Promise(r => setTimeout(r, 1000));
+    await update(ref(db, `pm-rooms/${roomCode}/answers/${myNick}`), myAnswers);
+  }
   document.getElementById('submit-answers-btn').style.display = 'none';
   document.getElementById('answer-waiting').style.display = 'block';
   soundSend();
-
-  // Każdy sprawdza
   checkAllAnswered();
 }
 
@@ -1673,29 +1692,34 @@ function doVoting(room) {
   showScreen('screen-voting');
   const answers = room.answers || {};
   const players = Object.keys(answers);
-  const cats = room.roundCategories || currentCategories.length ? (room.roundCategories || currentCategories) : CATEGORIES.slice(0, gameConfig.categories);
+  const cats = room.roundCategories || (currentCategories.length ? currentCategories : CATEGORIES.slice(0, gameConfig.categories));
   myVotes = {};
 
   const container = document.getElementById('voting-tables');
   container.innerHTML = '';
+
+  // Helper: safe key for data attributes (escape special chars)
+  function safeKey(str) { return str.replace(/[^a-zA-Z0-9]/g, '_'); }
 
   cats.forEach(cat => {
     const card = document.createElement('div');
     card.className = 'card';
     card.style.marginBottom = '12px';
 
+    const safeCat = safeKey(cat);
     let html = `<h3 style="margin-bottom:8px">${cat}</h3><table class="voting-table"><tbody>`;
     players.forEach(player => {
+      const safePlayer = safeKey(player);
       const answer = answers[player]?.[cat] || '';
       const isMe = player === myNick;
-      html += `<tr>
-        <td style="width:110px;font-weight:600">${player}</td>
-        <td data-answer-cell="${player}__${cat}" style="${isMe ? 'color:#6366f1;font-style:italic' : ''}">${answer || '<span style="color:#475569">brak</span>'}</td>
-        <td style="width:72px;text-align:right">
+      html += `<tr data-row="${safePlayer}__${safeCat}">
+        <td style="width:100px;font-weight:600">${player}</td>
+        <td data-answer-cell="${safePlayer}__${safeCat}" style="${isMe ? 'color:var(--accent);font-style:italic' : ''}">${answer || '<span style="color:#475569">brak</span>'}</td>
+        <td style="width:80px;text-align:right">
           ${!isMe && answer ? `
-            <button class="vote-btn approve" data-player="${player}" data-cat="${cat}" data-val="1">✓</button>
-            <button class="vote-btn reject" data-player="${player}" data-cat="${cat}" data-val="0">✗</button>
-          ` : ''}
+            <button class="vote-btn approve" data-player="${safePlayer}" data-cat="${safeCat}" data-val="1" data-real-player="${player}" data-real-cat="${cat}">✓</button>
+            <button class="vote-btn reject" data-player="${safePlayer}" data-cat="${safeCat}" data-val="0" data-real-player="${player}" data-real-cat="${cat}">✗</button>
+          ` : '<span style="font-size:.7rem;color:var(--muted)">—</span>'}
         </td>
       </tr>`;
     });
@@ -1704,47 +1728,64 @@ function doVoting(room) {
     container.appendChild(card);
   });
 
-  // Event delegation for vote buttons
+  // Vote indicators row — who voted
+  const indicatorCard = document.createElement('div');
+  indicatorCard.className = 'card';
+  indicatorCard.style.cssText = 'margin-bottom:12px;padding:12px 16px';
+  indicatorCard.innerHTML = `<div class="section-title" style="margin-bottom:8px">Kto zagłosował</div>
+    <div id="vote-indicators" style="display:flex;flex-wrap:wrap;gap:8px"></div>`;
+  container.prepend(indicatorCard);
+
+  // Event delegation
   container.onclick = (e) => {
     const btn = e.target.closest('.vote-btn');
     if (!btn) return;
-    const { player, cat, val } = btn.dataset;
-    if (!myVotes[player]) myVotes[player] = {};
-    myVotes[player][cat] = val === '1';
+    const { player, cat, val, realPlayer, realCat } = btn.dataset;
+    const rp = realPlayer || player;
+    const rc = realCat || cat;
+    if (!myVotes[rp]) myVotes[rp] = {};
+    myVotes[rp][rc] = val === '1';
 
-    // Update button styles for this pair
-    container.querySelectorAll(`.vote-btn[data-player="${player}"][data-cat="${cat}"]`).forEach(b => {
-      b.classList.remove('chosen');
-    });
+    container.querySelectorAll(`.vote-btn[data-player="${player}"][data-cat="${cat}"]`).forEach(b => b.classList.remove('chosen'));
     btn.classList.add('chosen');
+    soundVote();
 
-    // Live: push vote to Firebase immediately so others see it
-    update(ref(db, `pm-rooms/${roomCode}/liveVotes/${myNick}/${player}/${cat}`), val === '1');
-
-    // Live: update answer appearance based on current votes
-    updateLiveVoteDisplay(player, cat);
+    // Live push
+    update(ref(db, `pm-rooms/${roomCode}/liveVotes/${myNick}/${rp}/${rc}`), val === '1');
+    updateLiveVoteDisplay(rp, rc, null);
   };
 
-  // Listen for live votes from others
+  // Listen for live votes
   const liveVotesRef = ref(db, `pm-rooms/${roomCode}/liveVotes`);
   const liveUnsub = onValue(liveVotesRef, (snap) => {
     const liveVotes = snap.val() || {};
-    // For each player+cat combo, count votes and update display
+
+    // Update vote indicators
+    const indEl = document.getElementById('vote-indicators');
+    if (indEl) {
+      const allPlayers = Object.keys(room.players || {});
+      indEl.innerHTML = allPlayers.map(p => {
+        const hasVoted = !!liveVotes[p];
+        const isMe = p === myNick;
+        return `<div style="display:flex;align-items:center;gap:5px;padding:4px 10px;border-radius:20px;background:${hasVoted ? 'rgba(0,206,201,.15)' : 'rgba(255,255,255,.04)'};border:1px solid ${hasVoted ? 'rgba(0,206,201,.3)' : 'var(--border)'}">
+          <span style="font-size:.75rem;font-weight:700;color:${hasVoted ? 'var(--green)' : 'var(--muted)'}">${p}${isMe ? ' (Ty)' : ''}</span>
+          <span style="font-size:.8rem">${hasVoted ? '✓' : '⏳'}</span>
+        </div>`;
+      }).join('');
+    }
+
+    // Update answer cells
     cats.forEach(c => {
       players.forEach(p => {
-        if (p === myNick) return;
         updateLiveVoteDisplay(p, c, liveVotes);
       });
     });
   });
-  // Store unsub so we can clean it up
   window._liveVoteUnsub = liveUnsub;
 
-  document.getElementById('submit-votes-btn').style.display = 'block';
-  document.getElementById('voting-waiting').style.display = 'none';
-
   function updateLiveVoteDisplay(player, cat, liveVotes) {
-    // Count votes for this answer from all voters
+    const safeCat = safeKey(cat);
+    const safePlayer = safeKey(player);
     const votes = liveVotes || {};
     let yes = 0, no = 0, total = 0;
     Object.entries(votes).forEach(([voter, playerVotes]) => {
@@ -1753,8 +1794,7 @@ function doVoting(room) {
       if (v !== undefined) { total++; v ? yes++ : no++; }
     });
 
-    // Find the answer cell for this player+cat
-    const answerCell = container.querySelector(`[data-answer-cell="${player}__${cat}"]`);
+    const answerCell = container.querySelector(`[data-answer-cell="${safePlayer}__${safeCat}"]`);
     if (!answerCell) return;
 
     if (total === 0) {
@@ -1770,18 +1810,19 @@ function doVoting(room) {
     answerCell.style.opacity = majority ? '0.45' : '1';
     answerCell.style.color = majority ? 'var(--red)' : yes > no ? 'var(--green)' : '';
 
-    // Show live count badge
     let badge = answerCell.querySelector('.vote-live-count');
     if (!badge) {
       badge = document.createElement('span');
       badge.className = 'vote-live-count';
-      badge.style.cssText = 'font-size:.68rem;margin-left:6px;font-weight:700;opacity:.7';
+      badge.style.cssText = 'font-size:.65rem;margin-left:6px;font-weight:800;opacity:.8;white-space:nowrap';
       answerCell.appendChild(badge);
     }
-    badge.textContent = total > 0 ? `${yes}✓ ${no}✗` : '';
+    badge.textContent = `${yes}✓ ${no}✗`;
   }
-}
 
+  document.getElementById('submit-votes-btn').style.display = 'block';
+  document.getElementById('voting-waiting').style.display = 'none';
+}
 async function submitVotes() {
   if (votesSubmitted) return;
   votesSubmitted = true;
