@@ -1134,24 +1134,44 @@ function initProfileScreen() {
   const picker = document.getElementById('avatar-picker');
   picker.innerHTML = '';
   AVATARS.forEach(av => {
-    const btn = document.createElement('button');
+    const btn = document.createElement('div'); // div zamiast button — unika globalnych button styli
     btn.className = 'avatar-option' + (av === myAvatar ? ' selected' : '');
     btn.textContent = av;
-    btn.style.cssText = 'width:auto;padding:0;border:none;';
-    btn.onclick = () => {
+    btn.style.cssText = 'font-size:2rem;width:52px;height:52px;display:flex;align-items:center;justify-content:center;border-radius:14px;cursor:pointer;border:2px solid transparent;background:rgba(108,92,231,.08);transition:all .15s;user-select:none;';
+    if (av === myAvatar) btn.style.borderColor = 'var(--accent)';
+    btn.addEventListener('click', () => {
       myAvatar = av;
       localStorage.setItem('pm-avatar', av);
       document.getElementById('profile-avatar-big').textContent = av;
-      picker.querySelectorAll('.avatar-option').forEach(b => b.classList.remove('selected'));
+      picker.querySelectorAll('.avatar-option').forEach(b => {
+        b.classList.remove('selected');
+        b.style.borderColor = 'transparent';
+        b.style.background = 'rgba(108,92,231,.08)';
+      });
       btn.classList.add('selected');
+      btn.style.borderColor = 'var(--accent)';
+      btn.style.background = 'rgba(108,92,231,.2)';
       updateProfileBtn();
-      toast('Awatar zapisany!');
-    };
+      toast('Awatar zapisany! ' + av);
+    });
     picker.appendChild(btn);
   });
 
   // Nick input
   document.getElementById('profile-nick-input').value = myNick;
+
+  // Nick save — re-attach to avoid duplicate listeners
+  const saveBtn = document.getElementById('profile-nick-save');
+  const newSaveBtn = saveBtn.cloneNode(true);
+  saveBtn.parentNode.replaceChild(newSaveBtn, saveBtn);
+  newSaveBtn.addEventListener('click', () => {
+    const nick = document.getElementById('profile-nick-input').value.trim();
+    if (nick.length < 2) { toast('Nick musi mieć min. 2 znaki'); return; }
+    myNick = nick;
+    localStorage.setItem('pm-nick', nick);
+    document.getElementById('home-nick-display').textContent = `Witaj, ${nick}! ${myAvatar}`;
+    toast('Nick zapisany! ✓');
+  });
 
   // Stats
   const stats = document.getElementById('profile-stats');
@@ -1170,14 +1190,7 @@ function initProfileScreen() {
   `).join('');
 }
 
-document.getElementById('profile-nick-save').addEventListener('click', () => {
-  const nick = document.getElementById('profile-nick-input').value.trim();
-  if (nick.length < 2) { toast('Nick musi mieć min. 2 znaki'); return; }
-  myNick = nick;
-  localStorage.setItem('pm-nick', nick);
-  document.getElementById('home-nick-display').textContent = `Witaj, ${nick}! ${myAvatar}`;
-  toast('Nick zapisany!');
-});
+// nick-save is handled inside initProfileScreen via cloneNode
 
 if (myNick) {
   document.getElementById('home-nick-display').textContent = `Witaj, ${myNick}! ${myAvatar}`;
