@@ -614,44 +614,6 @@
   .cat-chip.selected { color: #fff; border-color: transparent; }
   .cat-chips-wrap { display: flex; flex-wrap: wrap; padding: 4px 0; }
 
-  /* PROFILE SYSTEM */
-  .profile-btn-home {
-    position: absolute; top: 16px; right: 0;
-    width: 52px; height: 52px; border-radius: 50%;
-    border: 2px solid var(--border2); background: var(--surface);
-    cursor: pointer; display: flex; align-items: center; justify-content: center;
-    font-size: 1.6rem; transition: all .2s; z-index: 10;
-    box-shadow: 0 0 0 0 rgba(108,92,231,0);
-  }
-  .profile-btn-home:hover { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(108,92,231,.2); }
-
-  .xp-bar-wrap { height: 6px; background: var(--border); border-radius: 3px; overflow: hidden; margin-top: 4px; }
-  .xp-bar-fill { height: 100%; border-radius: 3px; background: var(--grad); transition: width .6s cubic-bezier(.34,1.2,.64,1); }
-
-  .level-badge {
-    display: inline-flex; align-items: center; gap: 4px;
-    background: var(--grad); color: #fff;
-    padding: 3px 10px; border-radius: 20px;
-    font-size: .72rem; font-weight: 900; letter-spacing: .04em;
-  }
-
-  .avatar-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; }
-  .avatar-opt {
-    aspect-ratio: 1; border-radius: 16px; border: 2px solid var(--border2);
-    background: var(--surface); cursor: pointer;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 2rem; transition: all .15s;
-  }
-  .avatar-opt:hover { border-color: var(--accent); transform: scale(1.05); }
-  .avatar-opt.sel { border-color: var(--accent); background: rgba(108,92,231,.15); box-shadow: 0 0 12px rgba(108,92,231,.3); }
-
-  .unlock-badge {
-    display: inline-flex; align-items: center; gap: 3px;
-    font-size: .65rem; font-weight: 800; padding: 2px 7px; border-radius: 10px;
-    background: rgba(253,203,110,.15); color: var(--gold); border: 1px solid rgba(253,203,110,.3);
-  }
-  .locked-group { opacity: .45; pointer-events: none; }
-
   /* ANSWER PROGRESS */
   .answer-progress {
     display: flex; gap: 4px; margin-bottom: 4px;
@@ -706,18 +668,10 @@
 
 <!-- HOME SCREEN -->
 <div id="screen-home" class="screen">
-  <div style="flex:1;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:10px;padding:40px 0 24px;position:relative;width:100%">
-    <!-- Profile button -->
-    <button class="profile-btn-home" id="home-profile-btn" onclick="showScreen('screen-profile')">⚽</button>
+  <div style="flex:1;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:10px;padding:40px 0 24px">
     <div class="hero-emoji" id="home-ball" style="cursor:grab;touch-action:none;user-select:none;position:relative;z-index:1">⚽</div>
     <h1 class="title-glow">Państwa Miasta</h1>
     <p class="subtitle" id="home-nick-display"></p>
-    <!-- XP bar under nick -->
-    <div id="home-xp-wrap" style="width:180px;text-align:center">
-      <div id="home-level-badge" class="level-badge">LVL 1</div>
-      <div class="xp-bar-wrap" style="margin-top:6px"><div class="xp-bar-fill" id="home-xp-fill" style="width:0%"></div></div>
-      <div id="home-xp-text" style="font-size:.65rem;color:var(--muted);margin-top:3px">0 / 100 XP</div>
-    </div>
   </div>
   <div class="card" style="display:flex;flex-direction:column;gap:10px;position:relative;z-index:1">
     <button class="btn-primary" id="create-room-btn">🏟️ Utwórz nowy pokój</button>
@@ -734,50 +688,6 @@
     <input id="join-code-input" type="text" placeholder="ABCD12" maxlength="6"
       style="text-transform:uppercase;letter-spacing:.3em;font-size:1.6rem;text-align:center;font-weight:900;font-family:monospace">
     <button class="btn-green" id="join-confirm-btn">Dołącz ✓</button>
-  </div>
-</div>
-
-<!-- PROFILE SCREEN -->
-<div id="screen-profile" class="screen">
-  <div style="display:flex;align-items:center;gap:12px;padding:4px 0 8px">
-    <button onclick="showScreen('screen-home')" style="width:auto;padding:8px 14px;background:transparent;border:1px solid var(--border2);border-radius:10px;color:var(--muted);font-size:.9rem;font-family:inherit;cursor:pointer">← Wróć</button>
-    <h2 style="font-size:1.1rem">Mój profil</h2>
-  </div>
-
-  <!-- Avatar + level -->
-  <div class="card" style="text-align:center">
-    <div id="profile-avatar-display" style="font-size:4.5rem;margin-bottom:8px;filter:drop-shadow(0 0 16px rgba(108,92,231,.4))"></div>
-    <div id="profile-nick-name" style="font-size:1.2rem;font-weight:800;margin-bottom:6px"></div>
-    <div id="profile-level-badge" class="level-badge" style="font-size:.85rem;padding:5px 16px">LVL 1</div>
-    <div class="xp-bar-wrap" style="margin:10px 0 4px"><div class="xp-bar-fill" id="profile-xp-fill" style="width:0%"></div></div>
-    <div id="profile-xp-text" style="font-size:.75rem;color:var(--muted)"></div>
-  </div>
-
-  <!-- Avatar picker -->
-  <div class="card">
-    <div class="section-title" style="margin-bottom:10px">Wybierz awatar</div>
-    <div class="avatar-grid" id="avatar-grid"></div>
-  </div>
-
-  <!-- Nick change -->
-  <div class="card">
-    <div class="label">Pseudonim</div>
-    <div style="display:flex;gap:8px">
-      <input id="profile-nick-input" type="text" maxlength="20" autocomplete="off" style="flex:1">
-      <button id="profile-nick-save" class="btn-primary" style="width:auto;padding:12px 18px;font-size:.9rem;font-family:inherit;cursor:pointer">Zapisz</button>
-    </div>
-  </div>
-
-  <!-- Stats -->
-  <div class="card">
-    <div class="section-title" style="margin-bottom:10px">Statystyki</div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px" id="profile-stats-grid"></div>
-  </div>
-
-  <!-- Unlocked categories -->
-  <div class="card">
-    <div class="section-title" style="margin-bottom:10px">Odblokowane kategorie</div>
-    <div id="profile-unlocks"></div>
   </div>
 </div>
 <!-- LOBBY SCREEN -->
@@ -1207,8 +1117,7 @@ function showScreen(id, pushHash = true) {
   setTimeout(() => {
     document.querySelectorAll('.screen').forEach(s => { if (s.id !== id) s.classList.remove('active'); });
     document.getElementById(id).classList.add('active');
-    if (id === 'screen-scores') {}
-    if (id === 'screen-profile') initProfileScreen();  }, current && current.id !== id ? 80 : 0);
+    if (id === 'screen-scores') {}  }, current && current.id !== id ? 80 : 0);
 
   if (pushHash && SCREEN_HASH[id]) {
     history.pushState({ screen: id }, '', SCREEN_HASH[id]);
@@ -1407,160 +1316,9 @@ function genCode() {
   }
 })();
 
-// --- PROFILE SYSTEM ---
-const AVATARS = ['⚽','🏆','🦁','🔥','⚡','💎','🦅','🐉','👑','🌟'];
-
-// Level thresholds — każdy level wymaga więcej XP
-function xpForLevel(lvl) { return Math.floor(100 * Math.pow(1.5, lvl - 1)); }
-function totalXpForLevel(lvl) {
-  let total = 0;
-  for (let i = 1; i < lvl; i++) total += xpForLevel(i);
-  return total;
-}
-function getLevelFromXp(xp) {
-  let lvl = 1;
-  while (xp >= totalXpForLevel(lvl + 1)) lvl++;
-  return lvl;
-}
-
-// Categories unlock by level
-const GROUP_UNLOCK_LEVEL = {
-  'klasyczne': 1,   // zawsze odblokowane
-  'pilka':     1,
-  'sport':     3,
-  'kultura':   5,
-  'jedzenie':  7,
-  'nauka':     10,
-  'historia':  13,
-  'codzienne': 16,
-};
-
-let myProfile = JSON.parse(localStorage.getItem('pm-profile') || 'null') || {
-  avatar: '⚽', xp: 0, gamesPlayed: 0, totalPoints: 0, roundsWon: 0
-};
-
-function saveProfile() { localStorage.setItem('pm-profile', JSON.stringify(myProfile)); }
-
-function getMyLevel() { return getLevelFromXp(myProfile.xp); }
-
-function addXp(points) {
-  const oldLevel = getMyLevel();
-  myProfile.xp += Math.max(0, points);
-  const newLevel = getMyLevel();
-  saveProfile();
-  updateHomeXp();
-  if (newLevel > oldLevel) {
-    toast(`🎉 Level up! Jesteś teraz LVL ${newLevel}!`, 4000);
-    // Check new unlocks
-    Object.entries(GROUP_UNLOCK_LEVEL).forEach(([gid, minLvl]) => {
-      if (minLvl > oldLevel && minLvl <= newLevel) {
-        const g = CATEGORY_GROUPS.find(x => x.id === gid);
-        if (g) setTimeout(() => toast(`🔓 Odblokowano: ${g.label}!`, 4000), 1500);
-      }
-    });
-  }
-}
-
-function updateHomeXp() {
-  const lvl = getMyLevel();
-  const xpStart = totalXpForLevel(lvl);
-  const xpEnd = totalXpForLevel(lvl + 1);
-  const xpInLevel = myProfile.xp - xpStart;
-  const xpNeeded = xpEnd - xpStart;
-  const pct = Math.min(100, Math.round((xpInLevel / xpNeeded) * 100));
-
-  document.getElementById('home-level-badge').textContent = `LVL ${lvl}`;
-  document.getElementById('home-xp-fill').style.width = pct + '%';
-  document.getElementById('home-xp-text').textContent = `${xpInLevel} / ${xpNeeded} XP`;
-  document.getElementById('home-profile-btn').textContent = myProfile.avatar;
-}
-
-function initProfileScreen() {
-  const lvl = getMyLevel();
-  const xpStart = totalXpForLevel(lvl);
-  const xpEnd = totalXpForLevel(lvl + 1);
-  const xpInLevel = myProfile.xp - xpStart;
-  const xpNeeded = xpEnd - xpStart;
-  const pct = Math.min(100, Math.round((xpInLevel / xpNeeded) * 100));
-
-  document.getElementById('profile-avatar-display').textContent = myProfile.avatar;
-  document.getElementById('profile-nick-name').textContent = myNick;
-  document.getElementById('profile-level-badge').textContent = `LVL ${lvl}`;
-  document.getElementById('profile-xp-fill').style.width = pct + '%';
-  document.getElementById('profile-xp-text').textContent = `${myProfile.xp} XP łącznie · ${xpInLevel}/${xpNeeded} do następnego levelu`;
-  document.getElementById('profile-nick-input').value = myNick;
-
-  // Avatar grid
-  const grid = document.getElementById('avatar-grid');
-  grid.innerHTML = '';
-  AVATARS.forEach(av => {
-    const d = document.createElement('div');
-    d.className = 'avatar-opt' + (av === myProfile.avatar ? ' sel' : '');
-    d.textContent = av;
-    d.onclick = () => {
-      myProfile.avatar = av;
-      saveProfile();
-      document.getElementById('profile-avatar-display').textContent = av;
-      document.getElementById('home-profile-btn').textContent = av;
-      grid.querySelectorAll('.avatar-opt').forEach(x => x.classList.remove('sel'));
-      d.classList.add('sel');
-      toast('Awatar zapisany!');
-    };
-    grid.appendChild(d);
-  });
-
-  // Stats
-  const sg = document.getElementById('profile-stats-grid');
-  sg.innerHTML = [
-    ['🎮', myProfile.gamesPlayed || 0, 'Gier'],
-    ['⭐', myProfile.totalPoints || 0, 'Punktów'],
-    ['🏆', myProfile.roundsWon || 0, 'Wygranych rund'],
-    ['🔥', lvl, 'Poziom'],
-  ].map(([icon, val, label]) => `
-    <div class="stat-card">
-      <div style="font-size:1.4rem">${icon}</div>
-      <div class="stat-value">${val}</div>
-      <div class="stat-label">${label}</div>
-    </div>`).join('');
-
-  // Unlocks
-  const ul = document.getElementById('profile-unlocks');
-  ul.innerHTML = '';
-  CATEGORY_GROUPS.forEach(g => {
-    const minLvl = GROUP_UNLOCK_LEVEL[g.id] || 1;
-    const unlocked = lvl >= minLvl;
-    const d = document.createElement('div');
-    d.style.cssText = `display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border)`;
-    d.innerHTML = `
-      <span style="font-size:.9rem;${unlocked ? '' : 'color:var(--muted)'}">${g.label}</span>
-      ${unlocked
-        ? `<span style="font-size:.75rem;color:var(--green);font-weight:700">✓ Odblokowane</span>`
-        : `<span class="unlock-badge">🔒 LVL ${minLvl}</span>`}`;
-    ul.appendChild(d);
-  });
-
-  // Nick save
-  const saveBtn = document.getElementById('profile-nick-save');
-  const newBtn = saveBtn.cloneNode(true);
-  saveBtn.parentNode.replaceChild(newBtn, saveBtn);
-  newBtn.onclick = () => {
-    const nick = document.getElementById('profile-nick-input').value.trim();
-    if (nick.length < 2) { toast('Min. 2 znaki'); return; }
-    myNick = nick;
-    localStorage.setItem('pm-nick', nick);
-    document.getElementById('home-nick-display').textContent = `Witaj, ${nick}!`;
-    document.getElementById('profile-nick-name').textContent = nick;
-    toast('Nick zapisany! ✓');
-  };
-}
-
-// Override showScreen to init profile
-const _origShowScreen = showScreen;
-// (already handled in showScreen via hook below)
-
+// --- NICK ---
 if (myNick) {
   document.getElementById('home-nick-display').textContent = `Witaj, ${myNick}!`;
-  updateHomeXp();
   showScreen('screen-home');
 }
 
@@ -1570,7 +1328,6 @@ document.getElementById('nick-btn').onclick = () => {
   myNick = nick;
   localStorage.setItem('pm-nick', nick);
   document.getElementById('home-nick-display').textContent = `Witaj, ${nick}!`;
-  updateHomeXp();
   showScreen('screen-home');
 };
 
@@ -1614,18 +1371,11 @@ function initCatPicker(editable = true) {
   // Tabs
   tabsEl.innerHTML = '';
   CATEGORY_GROUPS.forEach(g => {
-    const minLvl = GROUP_UNLOCK_LEVEL[g.id] || 1;
-    const unlocked = getMyLevel() >= minLvl;
     const btn = document.createElement('button');
     btn.className = 'cat-group-tab' + (g.id === activeGroupId ? ' active' : '');
-    btn.textContent = unlocked ? g.label : `🔒 ${g.label}`;
-    btn.title = unlocked ? '' : `Odblokuj na LVL ${minLvl}`;
+    btn.textContent = g.label;
     btn.style.cssText = g.id === activeGroupId ? `background:${g.color}20;border-color:${g.color}60;color:${g.color}` : '';
-    if (!unlocked) btn.style.opacity = '.4';
-    btn.onclick = () => {
-      if (!unlocked) { toast(`🔒 Odblokuj na LVL ${minLvl}`); return; }
-      activeGroupId = g.id; initCatPicker(editable);
-    };
+    btn.onclick = () => { activeGroupId = g.id; initCatPicker(editable); };
     tabsEl.appendChild(btn);
   });
 
@@ -2459,17 +2209,6 @@ function doScores(room) {
   }
 
   if (isLastRound) { soundWin(); launchConfetti(4000); }
-
-  // Award XP
-  const myRoundScore = roundScores[myNick] || 0;
-  const xpGained = myRoundScore * 2 + (isLastRound ? 20 : 5);
-  addXp(xpGained);
-  myProfile.totalPoints = (myProfile.totalPoints || 0) + myRoundScore;
-  if (isLastRound) {
-    myProfile.gamesPlayed = (myProfile.gamesPlayed || 0) + 1;
-    if (players[0]?.nick === myNick) myProfile.roundsWon = (myProfile.roundsWon || 0) + 1;
-  }
-  saveProfile();
 
   document.getElementById('next-round-btn').style.display = (!isLastRound && isHost) ? 'block' : 'none';
 
