@@ -402,6 +402,55 @@
     margin: 4px 0;
   }
 
+  /* DRAW CATEGORIES PREVIEW */
+  .draw-cats {
+    background: rgba(13,15,26,.5);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px 16px;
+    animation: fadeIn .4s ease .3s both;
+  }
+  .draw-cats-title {
+    font-size: .7rem; color: var(--muted); font-weight: 700;
+    text-transform: uppercase; letter-spacing: .08em; margin-bottom: 10px;
+  }
+  .draw-cat-chip {
+    display: inline-flex; align-items: center; gap: 5px;
+    background: rgba(124,106,247,.12);
+    border: 1px solid rgba(124,106,247,.25);
+    border-radius: 20px; padding: 4px 10px;
+    font-size: .75rem; color: var(--accent2); font-weight: 600;
+    margin: 3px;
+  }
+
+  /* BONUS BADGE */
+  .bonus-badge {
+    display: inline-block;
+    background: linear-gradient(135deg,#fbbf24,#f59e0b);
+    color: #0d0f1a; font-size: .65rem; font-weight: 800;
+    padding: 2px 6px; border-radius: 6px; margin-left: 4px;
+    vertical-align: middle; letter-spacing: .03em;
+  }
+
+  /* ROUND HISTORY */
+  .history-toggle {
+    width: 100%; padding: 10px; border-radius: 10px;
+    background: transparent; border: 1px solid var(--border);
+    color: var(--muted); font-size: .8rem; font-weight: 600;
+    cursor: pointer; text-align: center;
+  }
+  .history-toggle:hover { background: var(--surface2); color: var(--text); }
+  .history-card {
+    background: var(--grad-surface);
+    border: 1px solid var(--border);
+    border-radius: 12px; padding: 14px;
+    font-size: .82rem;
+  }
+  .history-round-title {
+    font-size: .7rem; color: var(--muted); font-weight: 700;
+    text-transform: uppercase; letter-spacing: .06em; margin-bottom: 8px;
+  }
+
   /* PREVIEW BAR */
   #preview-bar {
     position: fixed; bottom: 0; left: 0; right: 0; z-index: 9999;
@@ -517,6 +566,7 @@
       <div class="letter-display" id="letter-display">?</div>
     </div>
     <div id="draw-status" style="color:var(--muted);font-size:1rem;font-weight:500;min-height:24px"></div>
+    <div id="draw-categories" style="display:none;text-align:left;width:100%;max-width:320px"></div>
   </div>
 </div>
 
@@ -538,6 +588,7 @@
   <button class="btn-green" id="submit-answers-btn">✓ Gotowe! Wyślij odpowiedzi</button>
   <div class="waiting-text" id="answer-waiting" style="display:none">
     Odpowiedzi wysłane — czekam na pozostałych...
+    <div id="answer-ready-count" style="font-size:.8rem;color:var(--accent2);margin-top:6px;font-weight:700"></div>
     <div class="progress-dots"><span></span><span></span><span></span></div>
   </div>
 </div>
@@ -555,6 +606,7 @@
   <button class="btn-primary" id="submit-votes-btn">✓ Zatwierdź głosy</button>
   <div class="waiting-text" id="voting-waiting" style="display:none">
     Głosy wysłane — czekam na pozostałych...
+    <div id="vote-ready-count" style="font-size:.8rem;color:var(--accent2);margin-top:6px;font-weight:700"></div>
     <div class="progress-dots"><span></span><span></span><span></span></div>
   </div>
 </div>
@@ -572,6 +624,7 @@
       <tbody id="score-tbody"></tbody>
     </table>
   </div>
+  <div id="round-history" style="display:none"></div>
   <div class="flex-row">
     <button class="btn-primary" id="next-round-btn" style="display:none">▶ Następna runda</button>
     <button class="btn-secondary" id="new-game-btn" style="display:none">🏠 Nowa gra</button>
@@ -641,6 +694,31 @@ let currentRound = 1;
 let answersSubmitted = false;
 let votesSubmitted = false;
 let currentCategories = [];
+let roundHistory = []; // { round, letter, categories, scores }
+
+// --- AUDIO ---
+const AudioCtx = window.AudioContext || window.webkitAudioContext;
+let audioCtx;
+function getAudio() {
+  if (!audioCtx) audioCtx = new AudioCtx();
+  return audioCtx;
+}
+function playTone(freq, type = 'sine', duration = 0.12, vol = 0.15) {
+  try {
+    const ctx = getAudio();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain); gain.connect(ctx.destination);
+    osc.type = type; osc.frequency.value = freq;
+    gain.gain.setValueAtTime(vol, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + duration);
+    osc.start(); osc.stop(ctx.currentTime + duration);
+  } catch(e) {}
+}
+function soundLand()   { playTone(523, 'sine', .15, .2); setTimeout(() => playTone(784, 'sine', .2, .18), 80); }
+function soundSend()   { playTone(440, 'sine', .08, .1); setTimeout(() => playTone(660, 'sine', .12, .1), 60); }
+function soundVote()   { playTone(330, 'triangle', .08, .08); }
+function soundWin()    { [523,659,784,1047].forEach((f,i) => setTimeout(() => playTone(f,'sine',.2,.15), i*80)); }
 
 // --- HASH ROUTING ---
 const SCREEN_HASH = {
@@ -825,6 +903,7 @@ function leaveRoom() {
   roomRef = null; roomCode = ''; isHost = false;
   myAnswers = {}; myVotes = {};
   answersSubmitted = false; votesSubmitted = false;
+  roundHistory = [];
 }
 
 // --- ROOM UPDATE HANDLER ---
@@ -843,7 +922,7 @@ function handleRoomUpdate(snap) {
   if (room.status === 'lobby') {
     if (active !== 'screen-lobby') showScreen('screen-lobby');
   } else if (room.status === 'letter-draw') {
-    if (active !== 'screen-draw') doLetterDraw(room.currentLetter);
+    if (active !== 'screen-draw') doLetterDraw(room.currentLetter, room);
   } else if (room.status === 'answering') {
     if (active !== 'screen-answer') doAnswering(room);
   } else if (room.status === 'voting') {
@@ -890,11 +969,19 @@ async function startGame() {
 }
 
 // --- LETTER DRAW ---
-function doLetterDraw(letter) {
+function doLetterDraw(letter, roomData) {
   showScreen('screen-draw');
   currentLetter = letter;
   answersSubmitted = false;
   votesSubmitted = false;
+
+  // Set categories from room data if available
+  if (roomData?.roundCategories) currentCategories = roomData.roundCategories;
+
+  // Reset categories preview
+  const dc = document.getElementById('draw-categories');
+  dc.style.display = 'none';
+  dc.innerHTML = '';
 
   document.getElementById('draw-round-badge').textContent = `Runda ${currentRound}`;
   const display = document.getElementById('letter-display');
@@ -936,8 +1023,20 @@ function doLetterDraw(letter) {
     }
 
     status.textContent = `Litera: ${letter}`;
+    soundLand();
+
+    // Show categories preview
+    if (currentCategories.length) {
+      const dc = document.getElementById('draw-categories');
+      dc.style.display = 'block';
+      dc.innerHTML = `<div class="draw-cats">
+        <div class="draw-cats-title">📋 Kategorie tej rundy</div>
+        <div>${currentCategories.map(c => `<span class="draw-cat-chip">⚽ ${c}</span>`).join('')}</div>
+      </div>`;
+    }
+
     if (isHost) {
-      setTimeout(() => update(roomRef, { status: 'answering', answerStartTime: Date.now() }), 1800);
+      setTimeout(() => update(roomRef, { status: 'answering', answerStartTime: Date.now() }), 3500);
     }
   }
 
@@ -1000,6 +1099,7 @@ async function submitAnswers() {
   await update(ref(db, `pm-rooms/${roomCode}/answers/${myNick}`), myAnswers);
   document.getElementById('submit-answers-btn').style.display = 'none';
   document.getElementById('answer-waiting').style.display = 'block';
+  soundSend();
 
   if (isHost) checkAllAnswered();
 }
@@ -1009,10 +1109,12 @@ async function checkAllAnswered() {
   const room = snap.val();
   const players = Object.keys(room.players || {});
   const answers = Object.keys(room.answers || {});
+  // Update counter
+  const el = document.getElementById('answer-ready-count');
+  if (el) el.textContent = `${answers.length} / ${players.length} gotowych`;
   if (answers.length >= players.length) {
     await update(roomRef, { status: 'voting', voteStartTime: Date.now() });
   } else {
-    // Poll every 2s
     setTimeout(checkAllAnswered, 2000);
   }
 }
@@ -1078,6 +1180,7 @@ async function submitVotes() {
   await update(ref(db, `pm-rooms/${roomCode}/votes/${myNick}`), myVotes);
   document.getElementById('submit-votes-btn').style.display = 'none';
   document.getElementById('voting-waiting').style.display = 'block';
+  soundSend();
 
   if (isHost) checkAllVoted();
 }
@@ -1087,6 +1190,8 @@ async function checkAllVoted() {
   const room = snap.val();
   const players = Object.keys(room.players || {});
   const votes = Object.keys(room.votes || {});
+  const el = document.getElementById('vote-ready-count');
+  if (el) el.textContent = `${votes.length} / ${players.length} zagłosowało`;
   if (votes.length >= players.length) {
     await calculateAndSaveScores(room);
   } else {
@@ -1103,6 +1208,13 @@ async function calculateAndSaveScores(room) {
   Object.keys(answers).forEach(p => { roundScores[p] = 0; });
 
   cats.forEach(cat => {
+    // Collect all non-empty answers for this category (normalized)
+    const catAnswers = {};
+    Object.keys(answers).forEach(player => {
+      const a = (answers[player]?.[cat] || '').trim().toLowerCase();
+      if (a) catAnswers[player] = a;
+    });
+
     Object.keys(answers).forEach(player => {
       const answer = answers[player]?.[cat];
       if (!answer) return;
@@ -1112,7 +1224,14 @@ async function calculateAndSaveScores(room) {
         const v = votes[voter]?.[player]?.[cat];
         if (v !== undefined) { total++; if (v) valid++; }
       });
-      roundScores[player] += total > 0 ? Math.max(1, Math.round((valid / total) * 10)) : 1;
+      const baseScore = total > 0 ? Math.max(1, Math.round((valid / total) * 10)) : 1;
+
+      // Bonus +3 za unikalną odpowiedź (nikt inny nie wpisał tego samego)
+      const myNorm = catAnswers[player];
+      const isUnique = myNorm && Object.entries(catAnswers).filter(([p, a]) => p !== player && a === myNorm).length === 0;
+      const uniqueBonus = isUnique ? 3 : 0;
+
+      roundScores[player] += baseScore + uniqueBonus;
     });
   });
 
@@ -1146,10 +1265,47 @@ function doScores(room) {
   tbody.innerHTML = '';
   players.forEach((p, i) => {
     const tr = document.createElement('tr');
-    tr.innerHTML = `<td class="rank-num">${i + 1}</td><td>${p.nick}</td>
-      <td>+${roundScores[p.nick] || 0}</td><td><strong>${p.score || 0}</strong></td>`;
+    const bonus = roundScores[p.nick] > 0 ? '' : '';
+    tr.innerHTML = `<td class="rank-num">${i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : i+1}</td>
+      <td>${p.nick}</td>
+      <td style="color:var(--green);font-weight:700">+${roundScores[p.nick] || 0}</td>
+      <td><strong>${p.score || 0}</strong></td>`;
     tbody.appendChild(tr);
   });
+
+  // Save to round history
+  roundHistory.push({
+    round: currentRound,
+    letter: room.currentLetter,
+    categories: room.roundCategories || [],
+    scores: { ...roundScores }
+  });
+
+  // Show round history
+  const histWrap = document.getElementById('round-history');
+  if (roundHistory.length > 1) {
+    histWrap.style.display = 'block';
+    histWrap.innerHTML = `
+      <button class="history-toggle" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='none'?'flex':'none'">
+        📜 Historia rund (${roundHistory.length - 1} poprzednich)
+      </button>
+      <div style="display:none;flex-direction:column;gap:8px;margin-top:8px">
+        ${roundHistory.slice(0,-1).reverse().map(h => `
+          <div class="history-card">
+            <div class="history-round-title">Runda ${h.round} · Litera ${h.letter}</div>
+            ${Object.entries(h.scores).sort((a,b)=>b[1]-a[1]).map(([nick,pts]) =>
+              `<div style="display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid var(--border)">
+                <span>${nick}</span><span style="color:var(--green);font-weight:700">+${pts}</span>
+              </div>`
+            ).join('')}
+          </div>
+        `).join('')}
+      </div>`;
+  } else {
+    histWrap.style.display = 'none';
+  }
+
+  if (isLastRound) soundWin();
 
   document.getElementById('next-round-btn').style.display = (!isLastRound && isHost) ? 'block' : 'none';
   document.getElementById('new-game-btn').style.display = 'block';
