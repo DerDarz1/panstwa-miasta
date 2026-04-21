@@ -476,7 +476,7 @@
     <div style="display:flex;flex-direction:column;gap:14px">
       <div>
         <div class="section-title">Liczba kategorii: <span id="cat-count-display" style="color:var(--accent2)">5</span></div>
-        <input type="range" id="cat-count" min="2" max="10" value="5" style="width:100%;accent-color:#7c6af7;margin-top:4px">
+        <input type="range" id="cat-count" min="2" max="40" value="5" style="width:100%;accent-color:#7c6af7;margin-top:4px">
       </div>
       <div class="divider"></div>
       <div>
@@ -612,8 +612,18 @@ const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 
 const CATEGORIES = [
+  // oryginalne
   'Piłkarz','Klub piłkarski','Kraj/Reprezentacja','Liga piłkarska','Stadion',
-  'Trener','inne słowo na gol','Turniej/Rozgrywki','Legendarny piłkarz','Pozycja na boisku'
+  'Trener','inne słowo na gol','Turniej/Rozgrywki','Legendarny piłkarz','Pozycja na boisku',
+  // nowe
+  'Bramkarz','Napastnik','Pomocnik','Obrońca','Kapitan reprezentacji',
+  'Piłkarz z Premier League','Piłkarz z La Liga','Piłkarz z Serie A','Piłkarz z Bundesligi','Piłkarz z Ekstraklasy',
+  'Klub z Anglii','Klub z Hiszpanii','Klub z Niemiec','Klub z Włoch','Klub z Polski',
+  'Zwycięzca Złotej Piłki','Król strzelców','Mistrz świata','Mistrz Europy','Zwycięzca Ligi Mistrzów',
+  'Piłkarz lat 90.','Piłkarz lat 2000.','Aktualny piłkarz','Piłkarz emerytowany','Piłkarz z Brazylii',
+  'Piłkarz z Argentyny','Piłkarz z Francji','Piłkarz z Niemiec','Piłkarz z Afryki','Derby miast',
+  'Stadion w Anglii','Stadion w Hiszpanii','Stadion w Polsce','Puchar krajowy','Sędzia piłkarski',
+  'Gest/Celebracja po golu','Zagranie techniczne','Formacja taktyczna','Sponsor koszulki','Marka butów piłkarskich',
 ];
 const LETTERS = 'ABCDEFGHIJKLMNOPRSTUWYZ'.split('');
 
