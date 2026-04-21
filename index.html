@@ -1424,6 +1424,18 @@ function handleRoomUpdate(snap) {
     if (active !== 'screen-answer') doAnswering(room);
   } else if (room.status === 'voting') {
     if (active !== 'screen-voting') doVoting(room);
+    // If already on voting screen, just update vote indicators
+    else if (active === 'screen-voting') {
+      // update ready count only
+      const players = Object.keys(room.players || {});
+      const votes = Object.keys(room.votes || {});
+      const el = document.getElementById('vote-ready-count');
+      if (el) el.textContent = `${votes.length} / ${players.length} zagłosowało`;
+      if (votes.length >= players.length && isHost && !window._scoringInProgress) {
+        window._scoringInProgress = true;
+        calculateAndSaveScores(room).finally(() => { window._scoringInProgress = false; });
+      }
+    }
   } else if (room.status === 'scores') {
     if (active !== 'screen-scores') doScores(room);
   }
@@ -1839,26 +1851,43 @@ async function submitVotes() {
   if (votesSubmitted) return;
   votesSubmitted = true;
 
-  // Cleanup live votes listener
   if (window._liveVoteUnsub) { window._liveVoteUnsub(); window._liveVoteUnsub = null; }
-
-  // Ensure we send at least a placeholder so Firebase registers this player voted
-  const toSend = Object.keys(myVotes).length > 0 ? myVotes : { _voted: true };
-  await update(ref(db, `pm-rooms/${roomCode}/votes/${myNick}`), toSend);
 
   document.getElementById('submit-votes-btn').style.display = 'none';
   document.getElementById('voting-waiting').style.display = 'block';
   soundSend();
 
+  try {
+    // Zapisz każdy głos osobno żeby uniknąć problemów z nested update
+    const voteRef = ref(db, `pm-rooms/${roomCode}/votes/${myNick}`);
+    if (Object.keys(myVotes).length > 0) {
+      // Flatten: votes/myNick/player/cat = bool
+      const flat = {};
+      Object.entries(myVotes).forEach(([player, cats]) => {
+        Object.entries(cats).forEach(([cat, val]) => {
+          flat[`${player}/${cat}`] = val;
+        });
+      });
+      await update(voteRef, flat);
+    } else {
+      // Brak głosów — zapisz placeholder
+      await update(voteRef, { _done: true });
+    }
+  } catch(e) {
+    await new Promise(r => setTimeout(r, 1000));
+    try {
+      await update(ref(db, `pm-rooms/${roomCode}/votes/${myNick}`), { _done: true });
+    } catch(e2) { console.error('Vote submit failed', e2); }
+  }
+
   checkAllVoted();
 }
 
 async function checkAllVoted() {
+  if (!roomRef) return;
   const snap = await get(roomRef);
   const room = snap.val();
   if (!room) return;
-
-  // Jeśli już przeszło do scores — nie rób nic
   if (room.status === 'scores') return;
 
   const players = Object.keys(room.players || {});
@@ -1867,11 +1896,7 @@ async function checkAllVoted() {
   if (el) el.textContent = `${votes.length} / ${players.length} zagłosowało`;
 
   if (votes.length >= players.length) {
-    // Tylko host liczy wyniki żeby nie było duplikatów
-    if (isHost) {
-      await calculateAndSaveScores(room);
-    }
-    // Nie-host poczeka na handleRoomUpdate który zmieni status
+    if (isHost) await calculateAndSaveScores(room);
   } else {
     setTimeout(checkAllVoted, 2000);
   }
@@ -1899,8 +1924,12 @@ async function calculateAndSaveScores(room) {
       let valid = 0, total = 0;
       Object.keys(votes).forEach(voter => {
         if (voter === player) return;
-        const v = votes[voter]?.[player]?.[cat];
-        if (v !== undefined && v !== true) { total++; if (v) valid++; } // ignore _voted placeholder
+        // Support both flat (voter/player/cat) and legacy structures
+        const voterVotes = votes[voter] || {};
+        // Skip placeholder keys
+        if (voterVotes._done || voterVotes._voted) return;
+        const v = voterVotes[player]?.[cat];
+        if (v !== undefined && typeof v === 'boolean') { total++; if (v) valid++; }
       });
       const baseScore = total > 0 ? Math.max(1, Math.round((valid / total) * 10)) : 1;
 
