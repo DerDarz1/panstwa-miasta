@@ -1101,19 +1101,26 @@ async function submitAnswers() {
   document.getElementById('answer-waiting').style.display = 'block';
   soundSend();
 
-  if (isHost) checkAllAnswered();
+  // Każdy sprawdza
+  checkAllAnswered();
 }
 
 async function checkAllAnswered() {
   const snap = await get(roomRef);
   const room = snap.val();
+  if (!room) return;
+
+  if (room.status === 'voting') return; // już przeszło
+
   const players = Object.keys(room.players || {});
   const answers = Object.keys(room.answers || {});
-  // Update counter
   const el = document.getElementById('answer-ready-count');
   if (el) el.textContent = `${answers.length} / ${players.length} gotowych`;
+
   if (answers.length >= players.length) {
-    await update(roomRef, { status: 'voting', voteStartTime: Date.now() });
+    if (isHost) {
+      await update(roomRef, { status: 'voting', voteStartTime: Date.now() });
+    }
   } else {
     setTimeout(checkAllAnswered, 2000);
   }
@@ -1182,18 +1189,29 @@ async function submitVotes() {
   document.getElementById('voting-waiting').style.display = 'block';
   soundSend();
 
-  if (isHost) checkAllVoted();
+  // Każdy sprawdza — kto pierwszy zobaczy że wszyscy zagłosowali, ten liczy wyniki
+  checkAllVoted();
 }
 
 async function checkAllVoted() {
   const snap = await get(roomRef);
   const room = snap.val();
+  if (!room) return;
+
+  // Jeśli już przeszło do scores — nie rób nic
+  if (room.status === 'scores') return;
+
   const players = Object.keys(room.players || {});
   const votes = Object.keys(room.votes || {});
   const el = document.getElementById('vote-ready-count');
   if (el) el.textContent = `${votes.length} / ${players.length} zagłosowało`;
+
   if (votes.length >= players.length) {
-    await calculateAndSaveScores(room);
+    // Tylko host liczy wyniki żeby nie było duplikatów
+    if (isHost) {
+      await calculateAndSaveScores(room);
+    }
+    // Nie-host poczeka na handleRoomUpdate który zmieni status
   } else {
     setTimeout(checkAllVoted, 2000);
   }
