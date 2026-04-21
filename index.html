@@ -791,6 +791,7 @@
     <button class="btn-primary" id="next-round-btn" style="display:none">▶ Następna runda</button>
     <button class="btn-secondary" id="new-game-btn" style="display:none">🏠 Nowa gra</button>
   </div>
+  <button class="btn-green" id="rematch-join-btn" style="display:none;margin-top:4px"></button>
 </div>
 
 </div>
@@ -1310,7 +1311,51 @@ document.getElementById('submit-votes-btn').onclick = submitVotes;
 
 // --- SCORES ---
 document.getElementById('next-round-btn').onclick = nextRound;
-document.getElementById('new-game-btn').onclick = () => { leaveRoom(); showScreen('screen-home'); };
+document.getElementById('new-game-btn').onclick = async () => {
+  if (isHost) {
+    // Create new room and broadcast code to all players
+    const oldRoomCode = roomCode;
+    const oldRoomRef = roomRef;
+    const players = Object.keys((await get(roomRef)).val()?.players || {});
+
+    // Generate new room code
+    const newCode = genCode();
+    const newRoomRef = ref(db, `pm-rooms/${newCode}`);
+
+    // Save rematch code in old room so guests can see it
+    await update(oldRoomRef, { rematchCode: newCode });
+
+    // Create new room with same players structure
+    await set(newRoomRef, {
+      host: myNick,
+      config: gameConfig,
+      players: { [myNick]: { nick: myNick, score: 0 } },
+      status: 'lobby',
+      round: 0,
+      createdAt: Date.now()
+    });
+    onDisconnect(newRoomRef).remove();
+
+    // Leave old room and join new one
+    if (unsub) { unsub(); unsub = null; }
+    roomCode = newCode;
+    roomRef = newRoomRef;
+    isHost = true;
+    myAnswers = {}; myVotes = {};
+    answersSubmitted = false; votesSubmitted = false;
+    roundHistory = [];
+
+    document.getElementById('lobby-code').textContent = newCode;
+    document.getElementById('lobby-link').textContent = `${location.origin}${location.pathname}?room=${newCode}`;
+    applyLobbySettings();
+    showScreen('screen-lobby');
+    unsub = onValue(roomRef, handleRoomUpdate);
+    toast('Nowy pokój gotowy! Gracze dołączają...');
+  } else {
+    leaveRoom();
+    showScreen('screen-home');
+  }
+};
 
 // --- CREATE ROOM ---
 async function createRoom() {
@@ -2015,7 +2060,44 @@ function doScores(room) {
   if (isLastRound) { soundWin(); launchConfetti(4000); }
 
   document.getElementById('next-round-btn').style.display = (!isLastRound && isHost) ? 'block' : 'none';
-  document.getElementById('new-game-btn').style.display = 'block';
+
+  // Buttons for end of game
+  const newGameBtn = document.getElementById('new-game-btn');
+  if (isLastRound) {
+    if (isHost) {
+      newGameBtn.style.display = 'block';
+      newGameBtn.textContent = '🔄 Nowa gra z tą samą ekipą';
+      newGameBtn.className = 'btn-green';
+    } else {
+      newGameBtn.style.display = 'none'; // guests wait for host
+    }
+  } else {
+    newGameBtn.style.display = 'block';
+    newGameBtn.textContent = '🏠 Wyjdź';
+    newGameBtn.className = 'btn-secondary';
+  }
+
+  // Listen for rematch room code from host
+  if (isLastRound && !isHost && roomRef) {
+    const rematchUnsub = onValue(ref(db, `pm-rooms/${roomCode}/rematchCode`), (snap) => {
+      const code = snap.val();
+      if (!code) return;
+      rematchUnsub();
+      // Show join button
+      const joinBtn = document.getElementById('rematch-join-btn');
+      if (joinBtn) {
+        joinBtn.style.display = 'block';
+        joinBtn.textContent = `🔄 Dołącz do nowej gry (${code})`;
+        joinBtn.onclick = async () => {
+          joinBtn.disabled = true;
+          leaveRoom();
+          // Auto-join new room
+          document.getElementById('join-code-input').value = code;
+          await joinRoom();
+        };
+      }
+    });
+  }
 }
 
 async function nextRound() {
