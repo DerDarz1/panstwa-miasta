@@ -633,37 +633,17 @@
 <!-- CONFETTI CANVAS -->
 <canvas id="confetti-canvas"></canvas>
 
-<!-- AUTH SCREEN -->
+<!-- NICK SCREEN -->
 <div id="screen-nick" class="screen active">
-  <div style="flex:1;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:10px;padding:48px 0 20px">
+  <div style="flex:1;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:10px;padding:48px 0 28px">
     <div class="hero-emoji">⚽</div>
     <h1 class="title-glow" style="font-size:2.4rem">Państwa Miasta</h1>
     <p class="subtitle" style="font-size:.85rem;letter-spacing:.05em;text-transform:uppercase">Piłkarska edycja · Multiplayer</p>
   </div>
-
-  <!-- Google login -->
-  <button id="google-login-btn" style="width:100%;padding:14px;border-radius:14px;border:1px solid var(--border2);background:rgba(255,255,255,.06);color:var(--text);font-size:1rem;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;font-family:inherit">
-    <svg width="20" height="20" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.31-8.16 2.31-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
-    Zaloguj przez Google
-  </button>
-
-  <div style="display:flex;align-items:center;gap:10px;margin:4px 0">
-    <div style="flex:1;height:1px;background:var(--border)"></div>
-    <span style="font-size:.75rem;color:var(--muted)">lub</span>
-    <div style="flex:1;height:1px;background:var(--border)"></div>
-  </div>
-
-  <!-- Email/password tabs -->
-  <div class="card" style="display:flex;flex-direction:column;gap:12px">
-    <div style="display:flex;gap:0;background:rgba(8,11,20,.6);border-radius:10px;padding:3px">
-      <button id="tab-login" onclick="switchAuthTab('login')" style="flex:1;padding:8px;border-radius:8px;border:none;background:var(--grad);color:#fff;font-size:.85rem;font-weight:700;cursor:pointer;font-family:inherit">Logowanie</button>
-      <button id="tab-register" onclick="switchAuthTab('register')" style="flex:1;padding:8px;border-radius:8px;border:none;background:transparent;color:var(--muted);font-size:.85rem;font-weight:700;cursor:pointer;font-family:inherit">Rejestracja</button>
-    </div>
-    <input id="auth-email" type="email" placeholder="Email" autocomplete="email">
-    <input id="auth-password" type="password" placeholder="Hasło" autocomplete="current-password">
-    <input id="auth-nick" type="text" placeholder="Nick (min. 2 znaki)" maxlength="20" style="display:none" autocomplete="off">
-    <button class="btn-primary" id="auth-submit-btn">Zaloguj się</button>
-    <div id="auth-error" style="font-size:.8rem;color:var(--red);text-align:center;min-height:16px"></div>
+  <div class="card">
+    <div class="label">Twój pseudonim</div>
+    <input id="nick-input" type="text" placeholder="Wpisz nick..." maxlength="20" autocomplete="off">
+    <button class="btn-primary" id="nick-btn" style="margin-top:14px">Dalej →</button>
   </div>
 </div>
 
@@ -678,7 +658,6 @@
     <button class="btn-primary" id="create-room-btn">🏟️ Utwórz nowy pokój</button>
     <button class="btn-secondary" id="join-room-btn">🔗 Dołącz do pokoju</button>
     <button class="btn-secondary" id="change-nick-btn" style="opacity:.6;font-size:.85rem;padding:10px">✏️ Zmień nick</button>
-    <button class="btn-secondary" id="logout-btn" style="opacity:.5;font-size:.82rem;padding:9px">🚪 Wyloguj</button>
   </div>
   <div class="card" id="change-nick-form" style="display:none;flex-direction:column;gap:10px;position:relative;z-index:1">
     <div class="label">Nowy nick</div>
@@ -833,10 +812,6 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getDatabase, ref, set, get, onValue, update, remove, onDisconnect }
   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
-import {
-  getAuth, onAuthStateChanged, signInWithPopup, signInWithEmailAndPassword,
-  createUserWithEmailAndPassword, GoogleAuthProvider, signOut, updateProfile
-} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyB7c4oqrupOt3ksDLntwJXCx7dL8GWMy0w",
@@ -850,8 +825,6 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
-const auth = getAuth(app);
-const googleProvider = new GoogleAuthProvider();
 
 const CATEGORIES = [
   // oryginalne
@@ -1264,81 +1237,20 @@ function genCode() {
   }
 })();
 
-// --- AUTH ---
-let authTab = 'login';
-
-window.switchAuthTab = function(tab) {
-  authTab = tab;
-  const isReg = tab === 'register';
-  document.getElementById('tab-login').style.background = isReg ? 'transparent' : 'var(--grad)';
-  document.getElementById('tab-login').style.color = isReg ? 'var(--muted)' : '#fff';
-  document.getElementById('tab-register').style.background = isReg ? 'var(--grad)' : 'transparent';
-  document.getElementById('tab-register').style.color = isReg ? '#fff' : 'var(--muted)';
-  document.getElementById('auth-nick').style.display = isReg ? 'block' : 'none';
-  document.getElementById('auth-submit-btn').textContent = isReg ? 'Zarejestruj się' : 'Zaloguj się';
-  document.getElementById('auth-error').textContent = '';
-};
-
-function authError(msg) {
-  const map = {
-    'auth/user-not-found': 'Nie znaleziono konta',
-    'auth/wrong-password': 'Złe hasło',
-    'auth/email-already-in-use': 'Email już zajęty',
-    'auth/weak-password': 'Hasło za krótkie (min. 6 znaków)',
-    'auth/invalid-email': 'Nieprawidłowy email',
-    'auth/invalid-credential': 'Nieprawidłowy email lub hasło',
-    'auth/popup-closed-by-user': '',
-  };
-  document.getElementById('auth-error').textContent = map[msg] || msg;
+// --- NICK ---
+if (myNick) {
+  document.getElementById('home-nick-display').textContent = `Witaj, ${myNick}!`;
+  showScreen('screen-home');
 }
 
-document.getElementById('google-login-btn').onclick = async () => {
-  try {
-    await signInWithPopup(auth, googleProvider);
-  } catch(e) { authError(e.code); }
+document.getElementById('nick-btn').onclick = () => {
+  const nick = document.getElementById('nick-input').value.trim();
+  if (nick.length < 2) { toast('Nick musi mieć min. 2 znaki'); return; }
+  myNick = nick;
+  localStorage.setItem('pm-nick', nick);
+  document.getElementById('home-nick-display').textContent = `Witaj, ${nick}!`;
+  showScreen('screen-home');
 };
-
-document.getElementById('auth-submit-btn').onclick = async () => {
-  const email = document.getElementById('auth-email').value.trim();
-  const pass  = document.getElementById('auth-password').value;
-  const nick  = document.getElementById('auth-nick').value.trim();
-  document.getElementById('auth-error').textContent = '';
-
-  if (!email || !pass) { authError('Wypełnij email i hasło'); return; }
-
-  try {
-    if (authTab === 'login') {
-      await signInWithEmailAndPassword(auth, email, pass);
-    } else {
-      if (nick.length < 2) { authError('Nick musi mieć min. 2 znaki'); return; }
-      const cred = await createUserWithEmailAndPassword(auth, email, pass);
-      await updateProfile(cred.user, { displayName: nick });
-    }
-  } catch(e) { authError(e.code); }
-};
-
-document.getElementById('logout-btn').onclick = async () => {
-  leaveRoom();
-  await signOut(auth);
-};
-
-// Auth state observer — main entry point
-onAuthStateChanged(auth, (user) => {
-  if (user) {
-    // Logged in
-    myNick = user.displayName || localStorage.getItem('pm-nick') || user.email.split('@')[0];
-    // Save nick if missing
-    if (!user.displayName && myNick) {
-      updateProfile(user, { displayName: myNick }).catch(() => {});
-    }
-    localStorage.setItem('pm-nick', myNick);
-    document.getElementById('home-nick-display').textContent = `Witaj, ${myNick}!`;
-    showScreen('screen-home');
-  } else {
-    // Not logged in
-    showScreen('screen-nick');
-  }
-});
 
 document.getElementById('change-nick-btn').onclick = () => {
   const form = document.getElementById('change-nick-form');
@@ -1355,7 +1267,6 @@ document.getElementById('change-nick-save').onclick = () => {
   if (nick.length < 2) { toast('Nick musi mieć min. 2 znaki'); return; }
   myNick = nick;
   localStorage.setItem('pm-nick', nick);
-  if (auth.currentUser) updateProfile(auth.currentUser, { displayName: nick }).catch(() => {});
   document.getElementById('home-nick-display').textContent = `Witaj, ${nick}!`;
   document.getElementById('change-nick-form').style.display = 'none';
   toast('Nick zmieniony!');
