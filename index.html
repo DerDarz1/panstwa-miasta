@@ -595,6 +595,25 @@
     to   { opacity: 1; transform: none; }
   }
 
+  /* CATEGORY PICKER */
+  .cat-group-tab {
+    padding: 5px 12px; border-radius: 20px; border: 1px solid var(--border2);
+    background: transparent; color: var(--muted);
+    font-size: .72rem; font-weight: 700; cursor: pointer;
+    font-family: inherit; transition: all .15s; white-space: nowrap;
+  }
+  .cat-group-tab.active { color: #fff; border-color: transparent; }
+  .cat-chip {
+    display: inline-flex; align-items: center;
+    padding: 5px 11px; border-radius: 20px; margin: 3px;
+    border: 1px solid var(--border2); background: rgba(8,11,20,.5);
+    color: var(--muted); font-size: .75rem; font-weight: 600;
+    cursor: pointer; transition: all .15s; user-select: none;
+  }
+  .cat-chip:hover { border-color: var(--accent); color: var(--text); }
+  .cat-chip.selected { color: #fff; border-color: transparent; }
+  .cat-chips-wrap { display: flex; flex-wrap: wrap; padding: 4px 0; }
+
   /* ANSWER PROGRESS */
   .answer-progress {
     display: flex; gap: 4px; margin-bottom: 4px;
@@ -683,11 +702,6 @@
     <h3 style="margin-bottom:14px;color:var(--text);font-size:1rem">⚙️ Ustawienia gry</h3>
     <div style="display:flex;flex-direction:column;gap:14px">
       <div>
-        <div class="section-title">Liczba kategorii: <span id="cat-count-display" style="color:var(--accent2);font-size:.85rem">5</span></div>
-        <input type="range" id="cat-count" min="2" max="40" value="5" style="width:100%;accent-color:#6c5ce7;margin-top:6px;height:4px">
-      </div>
-      <div class="divider"></div>
-      <div>
         <div class="section-title">Limit czasu na odpowiedzi</div>
         <select id="time-limit-select">
           <option value="0">⏳ Bez limitu</option>
@@ -705,6 +719,21 @@
           <option value="10">10 rund</option>
         </select>
       </div>
+    </div>
+  </div>
+
+  <!-- CATEGORY PICKER -->
+  <div class="card" id="cat-picker-card">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+      <h3 style="color:var(--text);font-size:1rem">📋 Kategorie</h3>
+      <span id="cat-selected-count" style="font-size:.8rem;color:var(--accent2);font-weight:800">0 wybranych</span>
+    </div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px" id="cat-group-tabs"></div>
+    <div id="cat-group-content"></div>
+    <div style="display:flex;gap:8px;margin-top:12px">
+      <button onclick="selectAllGroup()" style="flex:1;padding:8px;border-radius:10px;border:1px solid var(--border2);background:transparent;color:var(--muted);font-size:.75rem;font-weight:700;cursor:pointer;font-family:inherit">Zaznacz wszystkie</button>
+      <button onclick="clearAllCats()" style="flex:1;padding:8px;border-radius:10px;border:1px solid var(--border2);background:transparent;color:var(--muted);font-size:.75rem;font-weight:700;cursor:pointer;font-family:inherit">Wyczyść</button>
+      <button onclick="randomCats()" style="flex:1;padding:8px;border-radius:10px;border:1px solid rgba(108,92,231,.4);background:rgba(108,92,231,.1);color:var(--accent2);font-size:.75rem;font-weight:700;cursor:pointer;font-family:inherit">🎲 Losuj</button>
     </div>
   </div>
   <div class="card">
@@ -826,19 +855,69 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 
-const CATEGORIES = [
-  // oryginalne
-  'Piłkarz','Klub piłkarski','Kraj/Reprezentacja','Liga piłkarska','Stadion',
-  'Trener','inne słowo na gol','Turniej/Rozgrywki','Legendarny piłkarz','Pozycja na boisku',
-  // nowe
-  'Bramkarz','Napastnik','Pomocnik','Obrońca','Kapitan reprezentacji',
-  'Piłkarz z Premier League','Piłkarz z La Liga','Piłkarz z Serie A','Piłkarz z Bundesligi','Piłkarz z Ekstraklasy',
-  'Klub z Anglii','Klub z Hiszpanii','Klub z Niemiec','Klub z Włoch','Klub z Polski',
-  'Zwycięzca Złotej Piłki','Król strzelców','Mistrz świata','Mistrz Europy','Zwycięzca Ligi Mistrzów',
-  'Piłkarz lat 90.','Piłkarz lat 2000.','Aktualny piłkarz','Piłkarz emerytowany','Piłkarz z Brazylii',
-  'Piłkarz z Argentyny','Piłkarz z Francji','Piłkarz z Niemiec','Piłkarz z Afryki','Derby miast',
-  'Stadion w Anglii','Stadion w Hiszpanii','Stadion w Polsce','Puchar krajowy','Sędzia piłkarski',
-  'Gest/Celebracja po golu','Zagranie techniczne','Formacja taktyczna','Sponsor koszulki','Marka butów piłkarskich',
+const CATEGORY_GROUPS = [
+  { id: 'klasyczne', label: '🏛️ Klasyczne', color: '#a29bfe', cats: [
+    'Imię', 'Nazwisko', 'Miasto', 'Państwo', 'Rzeka', 'Góra', 'Roślina', 'Zwierzę',
+    'Zawód', 'Imię żeńskie', 'Imię męskie', 'Stolica', 'Kontynent', 'Ocean/Morze',
+    'Wyspa', 'Pustynia', 'Jezioro', 'Półwysep',
+  ]},
+  { id: 'pilka', label: '⚽ Piłka nożna', color: '#00cec9', cats: [
+    'Piłkarz', 'Klub piłkarski', 'Kraj/Reprezentacja', 'Liga piłkarska', 'Stadion',
+    'Trener piłkarski', 'Turniej/Rozgrywki', 'Legendarny piłkarz', 'Pozycja na boisku',
+    'Bramkarz', 'Napastnik', 'Pomocnik', 'Obrońca', 'Kapitan reprezentacji',
+    'Piłkarz z Premier League', 'Piłkarz z La Liga', 'Piłkarz z Serie A',
+    'Piłkarz z Bundesligi', 'Piłkarz z Ekstraklasy', 'Klub z Anglii', 'Klub z Hiszpanii',
+    'Klub z Niemiec', 'Klub z Włoch', 'Klub z Polski', 'Zwycięzca Złotej Piłki',
+    'Król strzelców', 'Mistrz świata', 'Mistrz Europy', 'Zwycięzca Ligi Mistrzów',
+    'Piłkarz z Brazylii', 'Piłkarz z Argentyny', 'Piłkarz z Francji', 'Derby miast',
+    'Formacja taktyczna', 'Marka butów piłkarskich', 'Sponsor koszulki',
+  ]},
+  { id: 'sport', label: '🏅 Sport', color: '#fdcb6e', cats: [
+    'Dyscyplina sportowa', 'Sportowiec', 'Klub sportowy', 'Mistrz olimpijski',
+    'Tenisista', 'Koszykarz', 'Siatkarz', 'Pływak', 'Lekkoatleta', 'Bokser',
+    'Kolarz', 'Skoczek narciarski', 'Hokeista', 'Rugbysta', 'Baseballista',
+    'Wyścig samochodowy', 'Zawodnik MMA', 'Turniej tenisowy', 'Stadion/Arena',
+    'Marka sprzętu sportowego',
+  ]},
+  { id: 'kultura', label: '🎬 Kultura i rozrywka', color: '#fd79a8', cats: [
+    'Film', 'Serial', 'Aktor/Aktorka', 'Reżyser', 'Postać filmowa', 'Animacja/Bajka',
+    'Piosenka', 'Zespół muzyczny', 'Piosenkarz/Piosenkarka', 'Album muzyczny',
+    'Gatunek muzyczny', 'Instrument muzyczny', 'Książka', 'Autor/Autorka',
+    'Postać z książki', 'Gra wideo', 'Postać z gry', 'Komiks/Manga',
+    'Superbohater', 'Złoczyńca filmowy',
+  ]},
+  { id: 'nauka', label: '🔬 Nauka i technika', color: '#74b9ff', cats: [
+    'Pierwiastek chemiczny', 'Planeta', 'Naukowiec', 'Wynalazek', 'Choroba',
+    'Lek/Lekarstwo', 'Organ ciała', 'Zwierzę morskie', 'Ptak', 'Owad',
+    'Drzewo', 'Kwiat', 'Marka samochodu', 'Model samochodu', 'Marka telefonu',
+    'Firma technologiczna', 'Język programowania', 'Marka komputera',
+  ]},
+  { id: 'jedzenie', label: '🍕 Jedzenie i napoje', color: '#55efc4', cats: [
+    'Potrawa', 'Warzywo', 'Owoc', 'Napój', 'Alkohol', 'Słodycze/Deser',
+    'Kuchnia świata', 'Przyprawa', 'Zupa', 'Ciasto', 'Restauracja/Sieć fast food',
+    'Marka napoju', 'Ser', 'Ryba', 'Mięso',
+  ]},
+  { id: 'historia', label: '📜 Historia i polityka', color: '#e17055', cats: [
+    'Historyczna postać', 'Bitwa/Wojna', 'Imperium/Cywilizacja', 'Władca/Król',
+    'Prezydent/Premier', 'Rewolucja', 'Traktat/Umowa', 'Organizacja międzynarodowa',
+    'Partia polityczna', 'Ideologia polityczna', 'Zamek/Forteca', 'Muzeum',
+    'Pomnik/Zabytek', 'Religia', 'Święto narodowe',
+  ]},
+  { id: 'codzienne', label: '🏠 Codzienne życie', color: '#b2bec3', cats: [
+    'Marka odzieżowa', 'Sklep/Sieć handlowa', 'Marka kosmetyków', 'Mebel',
+    'Sprzęt AGD', 'Narzędzie', 'Pojazd', 'Środek transportu', 'Lotnisko',
+    'Linia lotnicza', 'Hotel/Sieć hotelowa', 'Bank', 'Ubezpieczyciel',
+    'Szkoła/Uczelnia', 'Zawód medyczny',
+  ]},
+];
+
+// Flat list for backward compat
+const CATEGORIES = CATEGORY_GROUPS.flatMap(g => g.cats);
+
+// Default selected categories (classic mix)
+const DEFAULT_CATS = [
+  'Imię','Nazwisko','Miasto','Państwo','Rzeka','Zwierzę','Zawód',
+  'Piłkarz','Klub piłkarski','Film','Piosenka','Potrawa',
 ];
 const LETTERS = 'ABCDEFGHIJKLMNOPRSTUWYZ'.split('');
 
@@ -1281,12 +1360,80 @@ document.getElementById('join-room-btn').onclick = () => {
 document.getElementById('join-confirm-btn').onclick = joinRoom;
 
 // --- LOBBY SETTINGS ---
-document.getElementById('cat-count').oninput = (e) => {
-  const v = parseInt(e.target.value);
-  gameConfig.categories = v;
-  document.getElementById('cat-count-display').textContent = v;
-  if (roomRef && isHost) update(roomRef, { 'config/categories': v });
+let selectedCats = new Set(DEFAULT_CATS);
+let activeGroupId = CATEGORY_GROUPS[0].id;
+
+function initCatPicker(editable = true) {
+  const tabsEl = document.getElementById('cat-group-tabs');
+  const contentEl = document.getElementById('cat-group-content');
+  if (!tabsEl || !contentEl) return;
+
+  // Tabs
+  tabsEl.innerHTML = '';
+  CATEGORY_GROUPS.forEach(g => {
+    const btn = document.createElement('button');
+    btn.className = 'cat-group-tab' + (g.id === activeGroupId ? ' active' : '');
+    btn.textContent = g.label;
+    btn.style.cssText = g.id === activeGroupId ? `background:${g.color}20;border-color:${g.color}60;color:${g.color}` : '';
+    btn.onclick = () => { activeGroupId = g.id; initCatPicker(editable); };
+    tabsEl.appendChild(btn);
+  });
+
+  // Content
+  const group = CATEGORY_GROUPS.find(g => g.id === activeGroupId);
+  contentEl.innerHTML = '';
+  const wrap = document.createElement('div');
+  wrap.className = 'cat-chips-wrap';
+  group.cats.forEach(cat => {
+    const chip = document.createElement('div');
+    chip.className = 'cat-chip' + (selectedCats.has(cat) ? ' selected' : '');
+    chip.textContent = cat;
+    if (selectedCats.has(cat)) chip.style.cssText = `background:${group.color}25;border-color:${group.color}60;color:${group.color}`;
+    if (editable) {
+      chip.onclick = () => {
+        if (selectedCats.has(cat)) selectedCats.delete(cat);
+        else selectedCats.add(cat);
+        updateCatCount();
+        initCatPicker(editable);
+        syncCatsToFirebase();
+      };
+    }
+    wrap.appendChild(chip);
+  });
+  contentEl.appendChild(wrap);
+  updateCatCount();
+}
+
+function updateCatCount() {
+  const el = document.getElementById('cat-selected-count');
+  if (el) el.textContent = `${selectedCats.size} wybranych`;
+}
+
+function syncCatsToFirebase() {
+  if (roomRef && isHost) {
+    update(roomRef, { 'config/selectedCats': [...selectedCats] });
+  }
+}
+
+window.selectAllGroup = function() {
+  const group = CATEGORY_GROUPS.find(g => g.id === activeGroupId);
+  group.cats.forEach(c => selectedCats.add(c));
+  updateCatCount(); initCatPicker(isHost); syncCatsToFirebase();
 };
+window.clearAllCats = function() {
+  const group = CATEGORY_GROUPS.find(g => g.id === activeGroupId);
+  group.cats.forEach(c => selectedCats.delete(c));
+  updateCatCount(); initCatPicker(isHost); syncCatsToFirebase();
+};
+window.randomCats = function() {
+  selectedCats.clear();
+  const all = CATEGORIES.sort(() => Math.random() - .5);
+  all.slice(0, 8).forEach(c => selectedCats.add(c));
+  updateCatCount(); initCatPicker(isHost); syncCatsToFirebase();
+};
+
+document.getElementById('cat-count')?.remove(); // remove old range input if exists
+
 document.getElementById('time-limit-select').onchange = (e) => {
   gameConfig.timeLimit = parseInt(e.target.value);
   if (roomRef && isHost) update(roomRef, { 'config/timeLimit': gameConfig.timeLimit });
@@ -1406,21 +1553,27 @@ async function joinRoom() {
   applyLobbySettings();
   showScreen('screen-lobby');
   unsub = onValue(roomRef, handleRoomUpdate);
-  toast('Dołączono!');
+  toast('Pokój utworzony!');
+  initCatPicker(true);
 }
 
 function applyLobbySettings() {
-  document.getElementById('cat-count').value = gameConfig.categories;
-  document.getElementById('cat-count-display').textContent = gameConfig.categories;
   document.getElementById('time-limit-select').value = gameConfig.timeLimit;
   document.getElementById('max-rounds-select').value = gameConfig.maxRounds;
+  // Load selected cats from config
+  if (gameConfig.selectedCats?.length) {
+    selectedCats = new Set(gameConfig.selectedCats);
+  }
+  const editable = isHost;
+  initCatPicker(editable);
+  // Disable settings for guests
   const disabled = !isHost;
-  ['cat-count','time-limit-select','max-rounds-select'].forEach(id => {
-    document.getElementById(id).disabled = disabled;
-  });
-  // Hide settings card for guests
+  document.getElementById('time-limit-select').disabled = disabled;
+  document.getElementById('max-rounds-select').disabled = disabled;
   document.getElementById('lobby-settings').style.opacity = disabled ? '.5' : '1';
   document.getElementById('lobby-settings').style.pointerEvents = disabled ? 'none' : '';
+  document.getElementById('cat-picker-card').style.opacity = disabled ? '.5' : '1';
+  document.getElementById('cat-picker-card').style.pointerEvents = disabled ? 'none' : '';
 }
 
 function leaveRoom() {
@@ -1508,16 +1661,15 @@ function renderLobbyPlayers(players) {
 async function startGame() {
   if (!isHost) return;
   const letter = LETTERS[Math.floor(Math.random() * LETTERS.length)];
-  const shuffled = [...CATEGORIES].sort(() => Math.random() - .5);
-  const roundCategories = shuffled.slice(0, gameConfig.categories);
+  const cats = selectedCats.size > 0 ? [...selectedCats] : DEFAULT_CATS;
+  // Shuffle and pick up to 12 for one round
+  const roundCategories = cats.sort(() => Math.random() - .5).slice(0, Math.min(cats.length, 12));
   await update(roomRef, {
     status: 'letter-draw',
     currentLetter: letter,
     round: 1,
     roundCategories,
-    answers: null,
-    votes: null,
-    roundScores: null
+    answers: null, votes: null, roundScores: null
   });
 }
 
@@ -2102,16 +2254,14 @@ function doScores(room) {
 async function nextRound() {
   if (!isHost) return;
   const letter = LETTERS[Math.floor(Math.random() * LETTERS.length)];
-  const shuffled = [...CATEGORIES].sort(() => Math.random() - .5);
-  const roundCategories = shuffled.slice(0, gameConfig.categories);
+  const cats = selectedCats.size > 0 ? [...selectedCats] : DEFAULT_CATS;
+  const roundCategories = cats.sort(() => Math.random() - .5).slice(0, Math.min(cats.length, 12));
   await update(roomRef, {
     status: 'letter-draw',
     currentLetter: letter,
     round: currentRound + 1,
     roundCategories,
-    answers: null,
-    votes: null,
-    roundScores: null
+    answers: null, votes: null, roundScores: null
   });
 }
 
