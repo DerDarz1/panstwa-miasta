@@ -650,14 +650,28 @@
 
 <!-- HOME SCREEN -->
 <div id="screen-home" class="screen">
-  <div style="display:flex;justify-content:flex-end;padding:4px 0 0">
-    <button id="profile-btn" onclick="showScreen('screen-profile')" style="width:auto;padding:10px 14px;background:rgba(108,92,231,.15);border:1px solid rgba(108,92,231,.3);border-radius:14px;font-size:1.5rem;line-height:1;cursor:pointer" title="Profil"></button>
-  </div>
-  <div style="flex:1;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:10px;padding:20px 0 24px">
+  <div style="flex:1;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:10px;padding:40px 0 24px">
     <div class="hero-emoji">⚽</div>
     <h1 class="title-glow">Państwa Miasta</h1>
     <p class="subtitle" id="home-nick-display"></p>
   </div>
+  <div class="card" style="display:flex;flex-direction:column;gap:10px">
+    <button class="btn-primary" id="create-room-btn">🏟️ Utwórz nowy pokój</button>
+    <button class="btn-secondary" id="join-room-btn">🔗 Dołącz do pokoju</button>
+    <button class="btn-secondary" id="change-nick-btn" style="opacity:.6;font-size:.85rem;padding:10px">✏️ Zmień nick</button>
+  </div>
+  <div class="card" id="change-nick-form" style="display:none;flex-direction:column;gap:10px">
+    <div class="label">Nowy nick</div>
+    <input id="change-nick-input" type="text" maxlength="20" autocomplete="off">
+    <button class="btn-green" id="change-nick-save">Zapisz ✓</button>
+  </div>
+  <div class="card" id="join-form" style="display:none;flex-direction:column;gap:12px">
+    <div class="label">Wpisz kod pokoju</div>
+    <input id="join-code-input" type="text" placeholder="ABCD12" maxlength="6"
+      style="text-transform:uppercase;letter-spacing:.3em;font-size:1.6rem;text-align:center;font-weight:900;font-family:monospace">
+    <button class="btn-green" id="join-confirm-btn">Dołącz ✓</button>
+  </div>
+</div>
   <div class="card" style="display:flex;flex-direction:column;gap:10px">
     <button class="btn-primary" id="create-room-btn">🏟️ Utwórz nowy pokój</button>
     <button class="btn-secondary" id="join-room-btn">🔗 Dołącz do pokoju</button>
@@ -667,36 +681,6 @@
     <input id="join-code-input" type="text" placeholder="ABCD12" maxlength="6"
       style="text-transform:uppercase;letter-spacing:.3em;font-size:1.6rem;text-align:center;font-weight:900;font-family:monospace">
     <button class="btn-green" id="join-confirm-btn">Dołącz ✓</button>
-  </div>
-</div>
-
-<!-- PROFILE SCREEN -->
-<div id="screen-profile" class="screen">
-  <div style="display:flex;align-items:center;gap:12px;padding:8px 0 4px">
-    <button onclick="showScreen('screen-home')" style="width:auto;padding:8px 14px;background:transparent;border:1px solid var(--border2);border-radius:10px;color:var(--muted);font-size:.9rem">← Wróć</button>
-    <h2 style="font-size:1.1rem">Mój profil</h2>
-  </div>
-
-  <!-- Avatar picker -->
-  <div class="card" style="text-align:center">
-    <div id="profile-avatar-big" style="font-size:5rem;margin-bottom:12px;cursor:pointer;filter:drop-shadow(0 0 20px rgba(108,92,231,.4))" title="Kliknij aby zmienić"></div>
-    <div class="section-title" style="margin-bottom:10px">Wybierz awatar</div>
-    <div id="avatar-picker" style="display:flex;flex-wrap:wrap;gap:8px;justify-content:center"></div>
-  </div>
-
-  <!-- Nick change -->
-  <div class="card">
-    <div class="label">Pseudonim</div>
-    <div style="display:flex;gap:8px">
-      <input id="profile-nick-input" type="text" maxlength="20" autocomplete="off" style="flex:1">
-      <button id="profile-nick-save" class="btn-primary" style="width:auto;padding:12px 18px;font-size:.9rem">Zapisz</button>
-    </div>
-  </div>
-
-  <!-- Stats -->
-  <div class="card">
-    <h3 style="color:var(--text);margin-bottom:14px;font-size:1rem">📊 Statystyki</h3>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px" id="profile-stats"></div>
   </div>
 </div>
 
@@ -1066,8 +1050,7 @@ function showScreen(id, pushHash = true) {
   setTimeout(() => {
     document.querySelectorAll('.screen').forEach(s => { if (s.id !== id) s.classList.remove('active'); });
     document.getElementById(id).classList.add('active');
-    if (id === 'screen-profile') initProfileScreen();
-  }, current && current.id !== id ? 80 : 0);
+    if (id === 'screen-scores') {}  }, current && current.id !== id ? 80 : 0);
 
   if (pushHash && SCREEN_HASH[id]) {
     history.pushState({ screen: id }, '', SCREEN_HASH[id]);
@@ -1109,93 +1092,8 @@ function genCode() {
 }
 
 // --- NICK ---
-const AVATARS = ['⚽','🏆','🥅','👟','🧤','🦁','🐯','🦊','🐺','🦅','🔥','⚡','💎','🌟','🎯','🏅','🎮','👑','🤖','🦸'];
-
-let myAvatar = localStorage.getItem('pm-avatar') || '⚽';
-let myStats = JSON.parse(localStorage.getItem('pm-stats') || '{"gamesPlayed":0,"totalPoints":0,"roundsWon":0,"uniqueAnswers":0}');
-
-function saveStats(roundScore, isWinner, uniqueCount) {
-  myStats.gamesPlayed = (myStats.gamesPlayed || 0);
-  myStats.totalPoints = (myStats.totalPoints || 0) + roundScore;
-  myStats.roundsWon = (myStats.roundsWon || 0) + (isWinner ? 1 : 0);
-  myStats.uniqueAnswers = (myStats.uniqueAnswers || 0) + uniqueCount;
-  localStorage.setItem('pm-stats', JSON.stringify(myStats));
-}
-
-function updateProfileBtn() {
-  const btn = document.getElementById('profile-btn');
-  if (btn) btn.textContent = myAvatar;
-}
-
-function initProfileScreen() {
-  // Avatar big display
-  document.getElementById('profile-avatar-big').textContent = myAvatar;
-
-  // Avatar picker
-  const picker = document.getElementById('avatar-picker');
-  picker.innerHTML = '';
-  AVATARS.forEach(av => {
-    const btn = document.createElement('div'); // div zamiast button — unika globalnych button styli
-    btn.className = 'avatar-option' + (av === myAvatar ? ' selected' : '');
-    btn.textContent = av;
-    btn.style.cssText = 'font-size:2rem;width:52px;height:52px;display:flex;align-items:center;justify-content:center;border-radius:14px;cursor:pointer;border:2px solid transparent;background:rgba(108,92,231,.08);transition:all .15s;user-select:none;';
-    if (av === myAvatar) btn.style.borderColor = 'var(--accent)';
-    btn.addEventListener('click', () => {
-      myAvatar = av;
-      localStorage.setItem('pm-avatar', av);
-      document.getElementById('profile-avatar-big').textContent = av;
-      picker.querySelectorAll('.avatar-option').forEach(b => {
-        b.classList.remove('selected');
-        b.style.borderColor = 'transparent';
-        b.style.background = 'rgba(108,92,231,.08)';
-      });
-      btn.classList.add('selected');
-      btn.style.borderColor = 'var(--accent)';
-      btn.style.background = 'rgba(108,92,231,.2)';
-      updateProfileBtn();
-      toast('Awatar zapisany! ' + av);
-    });
-    picker.appendChild(btn);
-  });
-
-  // Nick input
-  document.getElementById('profile-nick-input').value = myNick;
-
-  // Nick save — re-attach to avoid duplicate listeners
-  const saveBtn = document.getElementById('profile-nick-save');
-  const newSaveBtn = saveBtn.cloneNode(true);
-  saveBtn.parentNode.replaceChild(newSaveBtn, saveBtn);
-  newSaveBtn.addEventListener('click', () => {
-    const nick = document.getElementById('profile-nick-input').value.trim();
-    if (nick.length < 2) { toast('Nick musi mieć min. 2 znaki'); return; }
-    myNick = nick;
-    localStorage.setItem('pm-nick', nick);
-    document.getElementById('home-nick-display').textContent = `Witaj, ${nick}! ${myAvatar}`;
-    toast('Nick zapisany! ✓');
-  });
-
-  // Stats
-  const stats = document.getElementById('profile-stats');
-  const s = myStats;
-  stats.innerHTML = [
-    ['🎮', s.gamesPlayed || 0, 'Gier'],
-    ['⭐', s.totalPoints || 0, 'Punktów'],
-    ['🏆', s.roundsWon || 0, 'Wygranych rund'],
-    ['💡', s.uniqueAnswers || 0, 'Unikalnych odp.'],
-  ].map(([icon, val, label]) => `
-    <div class="stat-card">
-      <div style="font-size:1.5rem">${icon}</div>
-      <div class="stat-value">${val}</div>
-      <div class="stat-label">${label}</div>
-    </div>
-  `).join('');
-}
-
-// nick-save is handled inside initProfileScreen via cloneNode
-
 if (myNick) {
-  document.getElementById('home-nick-display').textContent = `Witaj, ${myNick}! ${myAvatar}`;
-  updateProfileBtn();
+  document.getElementById('home-nick-display').textContent = `Witaj, ${myNick}!`;
   showScreen('screen-home');
 }
 
@@ -1204,9 +1102,28 @@ document.getElementById('nick-btn').onclick = () => {
   if (nick.length < 2) { toast('Nick musi mieć min. 2 znaki'); return; }
   myNick = nick;
   localStorage.setItem('pm-nick', nick);
-  document.getElementById('home-nick-display').textContent = `Witaj, ${nick}! ${myAvatar}`;
-  updateProfileBtn();
+  document.getElementById('home-nick-display').textContent = `Witaj, ${nick}!`;
   showScreen('screen-home');
+};
+
+document.getElementById('change-nick-btn').onclick = () => {
+  const form = document.getElementById('change-nick-form');
+  const isVisible = form.style.display === 'flex';
+  form.style.display = isVisible ? 'none' : 'flex';
+  if (!isVisible) {
+    document.getElementById('change-nick-input').value = myNick;
+    document.getElementById('change-nick-input').focus();
+  }
+};
+
+document.getElementById('change-nick-save').onclick = () => {
+  const nick = document.getElementById('change-nick-input').value.trim();
+  if (nick.length < 2) { toast('Nick musi mieć min. 2 znaki'); return; }
+  myNick = nick;
+  localStorage.setItem('pm-nick', nick);
+  document.getElementById('home-nick-display').textContent = `Witaj, ${nick}!`;
+  document.getElementById('change-nick-form').style.display = 'none';
+  toast('Nick zmieniony!');
 };
 
 // --- HOME ---
@@ -1880,13 +1797,6 @@ function doScores(room) {
   }
 
   if (isLastRound) { soundWin(); launchConfetti(4000); }
-
-  // Save stats locally
-  const myRoundScore = roundScores[myNick] || 0;
-  const isWinner = isLastRound && players[0]?.nick === myNick;
-  const uniqueCount = myRoundScore > 0 ? 1 : 0; // approximate
-  if (isLastRound) myStats.gamesPlayed = (myStats.gamesPlayed || 0) + 1;
-  saveStats(myRoundScore, isWinner, uniqueCount);
 
   document.getElementById('next-round-btn').style.display = (!isLastRound && isHost) ? 'block' : 'none';
   document.getElementById('new-game-btn').style.display = 'block';
