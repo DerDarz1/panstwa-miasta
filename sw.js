@@ -1,10 +1,10 @@
-const CACHE = 'pm-v1';
+const CACHE = 'pm-v3';
 const ASSETS = [
   './',
   './index.html',
   './manifest.json',
-  './icon-192.png',
-  './icon-512.png'
+  './icon-192.svg',
+  './icon-512.svg'
 ];
 
 self.addEventListener('install', e => {
@@ -22,9 +22,8 @@ self.addEventListener('activate', e => {
 });
 
 self.addEventListener('fetch', e => {
-  // Network first for Firebase, cache first for static assets
-  if (e.request.url.includes('firebase') || e.request.url.includes('gstatic')) {
-    return; // Let Firebase handle its own requests
+  if (e.request.url.includes('firebase') || e.request.url.includes('gstatic') || e.request.url.includes('fonts.googleapis')) {
+    return;
   }
   e.respondWith(
     caches.match(e.request).then(cached => cached || fetch(e.request))
