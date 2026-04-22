@@ -204,6 +204,29 @@
   .answer-progress-dot { flex:1; height:3px; border-radius:2px; background:var(--border); transition:background .3s; }
   .answer-progress-dot.filled { background:var(--grad-green); }
 
+  /* PROFILE STATS */
+  .stat-box {
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 14px; padding: 14px 12px; text-align: center;
+  }
+  .stat-box-val {
+    font-size: 1.8rem; font-weight: 900;
+    background: var(--grad); -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent; background-clip: text;
+    line-height: 1.1;
+  }
+  .stat-box-label {
+    font-size: .65rem; color: var(--muted); font-weight: 700;
+    text-transform: uppercase; letter-spacing: .08em; margin-top: 4px;
+  }
+  .stat-box-icon { font-size: 1.3rem; margin-bottom: 4px; }
+  .best-round-row {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 8px 0; border-bottom: 1px solid var(--border);
+    font-size: .85rem;
+  }
+  .best-round-row:last-child { border-bottom: none; }
+
   /* SEGMENTED CONTROLS */
   .seg-group { display:flex; gap:4px; flex-wrap:wrap; }
   .seg-btn {
@@ -340,7 +363,10 @@
   <div class="card" style="display:flex;flex-direction:column;gap:10px;position:relative;z-index:1">
     <button class="btn-primary" id="create-room-btn">🏟️ Utwórz nowy pokój</button>
     <button class="btn-secondary" id="join-room-btn">🔗 Dołącz do pokoju</button>
-    <button class="btn-secondary" id="change-nick-btn" style="opacity:.6;font-size:.85rem;padding:10px">✏️ Zmień nick</button>
+    <div style="display:flex;gap:8px">
+      <button class="btn-secondary" id="change-nick-btn" style="opacity:.6;font-size:.85rem;padding:10px">✏️ Zmień nick</button>
+      <button class="btn-secondary" id="profile-btn" style="opacity:.6;font-size:.85rem;padding:10px;flex:0 0 auto;width:auto">📊 Profil</button>
+    </div>
   </div>
   <div class="card" id="change-nick-form" style="display:none;flex-direction:column;gap:10px;position:relative;z-index:1">
     <div class="label">Nowy nick</div>
@@ -353,6 +379,41 @@
       style="text-transform:uppercase;letter-spacing:.3em;font-size:1.6rem;text-align:center;font-weight:900;font-family:monospace">
     <button class="btn-green" id="join-confirm-btn">Dołącz ✓</button>
   </div>
+</div>
+
+<!-- PROFILE SCREEN -->
+<div id="screen-profile" class="screen">
+  <div style="display:flex;align-items:center;gap:12px;padding:4px 0 8px">
+    <button id="profile-back-btn" class="btn-secondary" style="width:auto;padding:9px 16px;font-size:.85rem">← Wróć</button>
+    <h2 style="font-size:1.1rem">Mój profil</h2>
+  </div>
+
+  <!-- Avatar + nick -->
+  <div class="card" style="text-align:center;padding:24px">
+    <div id="profile-avatar-display" style="width:72px;height:72px;border-radius:50%;background:var(--grad);display:flex;align-items:center;justify-content:center;font-size:2rem;font-weight:900;color:#fff;margin:0 auto 12px;box-shadow:0 0 24px rgba(91,79,207,.4)"></div>
+    <div id="profile-nick-display" style="font-size:1.3rem;font-weight:900;margin-bottom:4px"></div>
+    <div style="font-size:.78rem;color:var(--muted)">Gracz lokalny</div>
+    <button id="profile-edit-nick-btn" class="btn-secondary" style="margin-top:14px;padding:9px;font-size:.82rem">✏️ Zmień nick</button>
+    <div id="profile-nick-edit" style="display:none;margin-top:10px;display:none">
+      <input id="profile-nick-input" type="text" maxlength="20" autocomplete="off" style="margin-bottom:8px">
+      <button id="profile-nick-save-btn" class="btn-green" style="padding:10px">Zapisz ✓</button>
+    </div>
+  </div>
+
+  <!-- Stats grid -->
+  <div class="card">
+    <div class="section-title" style="margin-bottom:14px">📊 Statystyki</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px" id="profile-stats-grid"></div>
+  </div>
+
+  <!-- Best rounds -->
+  <div class="card" id="profile-best-card" style="display:none">
+    <div class="section-title" style="margin-bottom:12px">🏆 Najlepsze rundy</div>
+    <div id="profile-best-rounds"></div>
+  </div>
+
+  <!-- Reset -->
+  <button id="profile-reset-btn" class="btn-secondary" style="opacity:.4;font-size:.8rem;padding:10px">🗑 Wyczyść statystyki</button>
 </div>
 <!-- LOBBY SCREEN -->
 <div id="screen-lobby" class="screen">
@@ -543,6 +604,7 @@
   <span style="font-size:.7rem;color:#7b82b0;font-weight:700;letter-spacing:.05em;white-space:nowrap">PODGLĄD</span>
   <button class="pv-btn pv-active" data-screen="screen-nick">Nick</button>
   <button class="pv-btn" data-screen="screen-home">Home</button>
+  <button class="pv-btn" data-screen="screen-profile">Profil</button>
   <button class="pv-btn" data-screen="screen-lobby">Lobby</button>
   <button class="pv-btn" data-screen="screen-draw">Losowanie</button>
   <button class="pv-btn" data-screen="screen-answer">Odpowiedzi</button>
@@ -1053,8 +1115,133 @@ function genCode() {
   }
 })();
 
-// --- NICK ---
-if (myNick) {
+// --- STATS SYSTEM ---
+const STATS_KEY = 'pm-stats-v2';
+
+function loadStats() {
+  try { return JSON.parse(localStorage.getItem(STATS_KEY)) || {}; } catch { return {}; }
+}
+function saveStats(s) {
+  localStorage.setItem(STATS_KEY, JSON.stringify(s));
+}
+function getStatsForNick(nick) {
+  const all = loadStats();
+  return all[nick] || { gamesPlayed:0, gamesWon:0, totalPoints:0, totalRounds:0, bestRound:0, catCounts:{}, history:[] };
+}
+function recordRoundResult(nick, roundScore, isWinner, isLastRound, cats, answers) {
+  const all = loadStats();
+  if (!all[nick]) all[nick] = { gamesPlayed:0, gamesWon:0, totalPoints:0, totalRounds:0, bestRound:0, catCounts:{}, history:[] };
+  const s = all[nick];
+  s.totalPoints += roundScore;
+  s.totalRounds++;
+  s.bestRound = Math.max(s.bestRound, roundScore);
+  if (isLastRound) {
+    s.gamesPlayed++;
+    if (isWinner) s.gamesWon++;
+  }
+  // Count categories answered
+  if (cats && answers) {
+    cats.forEach(cat => {
+      const ans = answers[cat] || answers[safeKey(cat)];
+      if (ans && ans.trim()) {
+        s.catCounts[cat] = (s.catCounts[cat] || 0) + 1;
+      }
+    });
+  }
+  // Keep last 5 rounds in history
+  s.history = s.history || [];
+  s.history.unshift({ score: roundScore, isWin: isWinner && isLastRound, ts: Date.now() });
+  if (s.history.length > 5) s.history.pop();
+  all[nick] = s;
+  saveStats(all);
+}
+
+// --- PROFILE SCREEN ---
+function openProfile() {
+  const s = getStatsForNick(myNick);
+
+  // Avatar initials
+  const av = document.getElementById('profile-avatar-display');
+  if (av) av.textContent = myNick ? myNick[0].toUpperCase() : '?';
+
+  // Nick
+  const nd = document.getElementById('profile-nick-display');
+  if (nd) nd.textContent = myNick || 'Brak nicku';
+
+  // Stats grid
+  const favCat = Object.entries(s.catCounts || {}).sort((a,b) => b[1]-a[1])[0]?.[0] || '—';
+  const winRate = s.gamesPlayed > 0 ? Math.round((s.gamesWon / s.gamesPlayed) * 100) : 0;
+  const avgScore = s.totalRounds > 0 ? Math.round(s.totalPoints / s.totalRounds) : 0;
+
+  const grid = document.getElementById('profile-stats-grid');
+  if (grid) grid.innerHTML = [
+    ['🎮', s.gamesPlayed, 'Gier'],
+    ['🏆', s.gamesWon, 'Wygranych'],
+    ['⭐', s.totalPoints, 'Punktów'],
+    ['📈', avgScore, 'Śr. za rundę'],
+    ['🔥', s.bestRound, 'Rekord rundy'],
+    ['🎯', winRate + '%', 'Win rate'],
+  ].map(([icon, val, label]) => `
+    <div class="stat-box">
+      <div class="stat-box-icon">${icon}</div>
+      <div class="stat-box-val">${val}</div>
+      <div class="stat-box-label">${label}</div>
+    </div>
+  `).join('');
+
+  // Best rounds history
+  const bestCard = document.getElementById('profile-best-card');
+  const bestRounds = document.getElementById('profile-best-rounds');
+  if (s.history && s.history.length > 0 && bestCard && bestRounds) {
+    bestCard.style.display = 'block';
+    bestRounds.innerHTML = s.history.map(h => {
+      const d = new Date(h.ts);
+      const dateStr = `${d.getDate()}.${d.getMonth()+1} ${d.getHours()}:${String(d.getMinutes()).padStart(2,'0')}`;
+      return `<div class="best-round-row">
+        <span>${dateStr}</span>
+        <span style="color:var(--green);font-weight:700">+${h.score} pkt</span>
+        ${h.isWin ? '<span style="font-size:.75rem;background:rgba(246,201,14,.15);color:var(--gold);border:1px solid rgba(246,201,14,.3);border-radius:20px;padding:2px 8px">🏆 Wygrana</span>' : ''}
+      </div>`;
+    }).join('');
+  } else if (bestCard) {
+    bestCard.style.display = 'none';
+  }
+
+  showScreen('screen-profile');
+}
+
+document.getElementById('profile-btn').onclick = openProfile;
+document.getElementById('profile-back-btn').onclick = () => showScreen('screen-home');
+
+document.getElementById('profile-edit-nick-btn').onclick = () => {
+  const editDiv = document.getElementById('profile-nick-edit');
+  editDiv.style.display = editDiv.style.display === 'none' ? 'block' : 'none';
+  if (editDiv.style.display === 'block') {
+    document.getElementById('profile-nick-input').value = myNick;
+    document.getElementById('profile-nick-input').focus();
+  }
+};
+
+document.getElementById('profile-nick-save-btn').onclick = () => {
+  const nick = document.getElementById('profile-nick-input').value.trim();
+  if (nick.length < 2) { toast('Nick musi mieć min. 2 znaki'); return; }
+  myNick = nick;
+  localStorage.setItem('pm-nick', nick);
+  document.getElementById('home-nick-display').textContent = `Witaj, ${nick}!`;
+  document.getElementById('profile-nick-display').textContent = nick;
+  document.getElementById('profile-avatar-display').textContent = nick[0].toUpperCase();
+  document.getElementById('profile-nick-edit').style.display = 'none';
+  toast('Nick zmieniony!');
+};
+
+document.getElementById('profile-reset-btn').onclick = () => {
+  if (!confirm('Wyczyścić wszystkie statystyki?')) return;
+  const all = loadStats();
+  delete all[myNick];
+  saveStats(all);
+  openProfile();
+  toast('Statystyki wyczyszczone');
+};
   document.getElementById('home-nick-display').textContent = `Witaj, ${myNick}!`;
   showScreen('screen-home');
 }
@@ -2062,6 +2249,11 @@ function doScores(room) {
   }
 
   if (isLastRound) { soundWin(); launchConfetti(4000); }
+
+  // Record stats
+  const myRoundScore = roundScores[myNick] || 0;
+  const isWinner = isLastRound && players[0]?.nick === myNick;
+  recordRoundResult(myNick, myRoundScore, isWinner, isLastRound, room.roundCategories, room.answers?.[myNick]);
 
   document.getElementById('next-round-btn').style.display = (!isLastRound && isHost) ? 'block' : 'none';
 
