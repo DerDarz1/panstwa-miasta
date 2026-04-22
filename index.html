@@ -302,28 +302,41 @@
 
   <!-- Category picker -->
   <div class="card" id="cat-picker-card" style="padding:16px 18px">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+    <!-- Header -->
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
       <h3 style="color:var(--text);font-size:.95rem">📋 Kategorie</h3>
-      <span id="cat-selected-count" style="font-size:.78rem;color:var(--accent2);font-weight:800;background:rgba(91,79,207,.15);padding:3px 10px;border-radius:20px">0 wybranych</span>
+      <span id="cat-selected-count" style="font-size:.75rem;color:var(--accent2);font-weight:800;background:rgba(91,79,207,.15);padding:3px 10px;border-radius:20px">0 w puli</span>
     </div>
+
+    <!-- Suwak ile kategorii na rundę -->
+    <div style="background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:12px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <span style="font-size:.72rem;color:var(--muted2);font-weight:700">Kategorii na rundę</span>
+        <span id="rand-count-display" style="font-size:1rem;color:var(--accent2);font-weight:900;min-width:24px;text-align:right">8</span>
+      </div>
+      <input type="range" id="rand-count" min="1" max="20" value="8" style="width:100%;accent-color:#5b4fcf;height:5px;cursor:pointer">
+      <div style="display:flex;justify-content:space-between;margin-top:4px">
+        <span style="font-size:.6rem;color:var(--muted)">1</span>
+        <span style="font-size:.6rem;color:var(--muted)">20</span>
+      </div>
+    </div>
+
+    <!-- Opis -->
+    <div style="font-size:.72rem;color:var(--muted);margin-bottom:10px;line-height:1.5">
+      Zaznacz kategorie z których chcesz losować, lub kliknij <strong style="color:var(--accent2)">🎲 Losuj</strong> żeby wybrać losowo.
+    </div>
+
     <!-- Group tabs -->
-    <div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:10px" id="cat-group-tabs"></div>
+    <div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:8px" id="cat-group-tabs"></div>
+
     <!-- Chips -->
-    <div id="cat-group-content" style="max-height:180px;overflow-y:auto;padding-right:2px"></div>
+    <div id="cat-group-content" style="max-height:200px;overflow-y:auto;padding-right:2px"></div>
+
     <!-- Actions -->
     <div style="display:flex;gap:6px;margin-top:10px;padding-top:10px;border-top:1px solid var(--border)">
-      <div style="flex:2;display:flex;flex-direction:column;gap:4px">
-        <div style="display:flex;justify-content:space-between;align-items:center">
-          <span style="font-size:.65rem;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.08em">Ile losować</span>
-          <span id="rand-count-display" style="font-size:.78rem;color:var(--accent2);font-weight:800">8</span>
-        </div>
-        <input type="range" id="rand-count" min="1" max="20" value="8" style="width:100%;accent-color:#5b4fcf;height:4px">
-      </div>
-      <button onclick="randomCats()" style="flex:1;padding:7px;border-radius:9px;border:1px solid rgba(91,79,207,.4);background:rgba(91,79,207,.1);color:var(--accent2);font-size:.7rem;font-weight:700;cursor:pointer;font-family:inherit;transition:all .15s">🎲 Losuj</button>
-    </div>
-    <div style="display:flex;gap:6px;margin-top:6px">
-      <button onclick="selectAllGroup()" style="flex:1;padding:7px;border-radius:9px;border:1px solid var(--border2);background:transparent;color:var(--muted2);font-size:.7rem;font-weight:700;cursor:pointer;font-family:inherit;transition:all .15s">✓ Wszystkie z grupy</button>
-      <button onclick="clearAllCats()" style="flex:1;padding:7px;border-radius:9px;border:1px solid var(--border2);background:transparent;color:var(--muted2);font-size:.7rem;font-weight:700;cursor:pointer;font-family:inherit;transition:all .15s">✗ Wyczyść wszystko</button>
+      <button onclick="randomCats()" style="flex:2;padding:9px;border-radius:10px;border:1px solid rgba(91,79,207,.4);background:rgba(91,79,207,.12);color:var(--accent2);font-size:.78rem;font-weight:800;cursor:pointer;font-family:inherit;transition:all .15s">🎲 Losuj tyle ile wybrałem</button>
+      <button onclick="selectAllGroup()" style="flex:1;padding:9px;border-radius:10px;border:1px solid var(--border2);background:transparent;color:var(--muted2);font-size:.72rem;font-weight:700;cursor:pointer;font-family:inherit" title="Zaznacz wszystkie z tej grupy">✓ Grupa</button>
+      <button onclick="clearAllCats()" style="flex:1;padding:9px;border-radius:10px;border:1px solid var(--border2);background:transparent;color:var(--muted2);font-size:.72rem;font-weight:700;cursor:pointer;font-family:inherit" title="Wyczyść wszystko">✗ Wyczyść</button>
     </div>
   </div>
 
@@ -1002,7 +1015,13 @@ function initCatPicker(editable = true) {
 
 function updateCatCount() {
   const el = document.getElementById('cat-selected-count');
-  if (el) el.textContent = `${selectedCats.size} wybranych`;
+  const count = parseInt(document.getElementById('rand-count')?.value || 8);
+  if (el) {
+    const n = selectedCats.size;
+    el.textContent = n === 0 ? '0 w puli' : `${n} w puli → ${Math.min(n, count)} na rundę`;
+    el.style.background = n === 0 ? 'rgba(245,101,101,.15)' : 'rgba(91,79,207,.15)';
+    el.style.color = n === 0 ? 'var(--red)' : 'var(--accent2)';
+  }
 }
 
 function syncCatsToFirebase() {
@@ -1037,6 +1056,8 @@ document.addEventListener('input', (e) => {
     const v = e.target.value;
     const el = document.getElementById('rand-count-display');
     if (el) el.textContent = v;
+    updateCatCount(); // refresh "X w puli → Y na rundę"
+    if (isHost) syncCatsToFirebase();
   }
 });
 
@@ -1270,14 +1291,11 @@ async function startGame() {
   if (!isHost) return;
   const letter = LETTERS[Math.floor(Math.random() * LETTERS.length)];
   const cats = selectedCats.size > 0 ? [...selectedCats] : DEFAULT_CATS;
-  // Shuffle and pick up to 12 for one round
-  const roundCategories = cats.sort(() => Math.random() - .5).slice(0, Math.min(cats.length, 12));
+  const perRound = parseInt(document.getElementById('rand-count')?.value || 8);
+  const roundCategories = cats.sort(() => Math.random() - .5).slice(0, Math.min(cats.length, perRound));
   await update(roomRef, {
-    status: 'letter-draw',
-    currentLetter: letter,
-    round: 1,
-    roundCategories,
-    answers: null, votes: null, roundScores: null
+    status: 'letter-draw', currentLetter: letter, round: 1,
+    roundCategories, answers: null, votes: null, roundScores: null
   });
 }
 
@@ -1863,13 +1881,11 @@ async function nextRound() {
   if (!isHost) return;
   const letter = LETTERS[Math.floor(Math.random() * LETTERS.length)];
   const cats = selectedCats.size > 0 ? [...selectedCats] : DEFAULT_CATS;
-  const roundCategories = cats.sort(() => Math.random() - .5).slice(0, Math.min(cats.length, 12));
+  const perRound = parseInt(document.getElementById('rand-count')?.value || 8);
+  const roundCategories = cats.sort(() => Math.random() - .5).slice(0, Math.min(cats.length, perRound));
   await update(roomRef, {
-    status: 'letter-draw',
-    currentLetter: letter,
-    round: currentRound + 1,
-    roundCategories,
-    answers: null, votes: null, roundScores: null
+    status: 'letter-draw', currentLetter: letter, round: currentRound + 1,
+    roundCategories, answers: null, votes: null, roundScores: null
   });
 }
 
