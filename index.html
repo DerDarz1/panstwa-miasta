@@ -367,9 +367,18 @@
         </select>
       </div>
     </div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-top:12px;padding-top:12px;border-top:1px solid var(--border)">
+      <div>
+        <div style="font-size:.85rem;font-weight:700;color:var(--text)">🎲 Losuj kategorie co rundę</div>
+        <div style="font-size:.72rem;color:var(--muted);margin-top:2px">Każda runda losuje nowy zestaw z wybranych</div>
+      </div>
+      <label id="shuffle-label" style="position:relative;display:inline-block;width:44px;height:24px;flex-shrink:0;cursor:pointer">
+        <input type="checkbox" id="shuffle-cats-toggle" style="opacity:0;width:0;height:0;position:absolute">
+        <span id="shuffle-cats-track" style="position:absolute;inset:0;border-radius:12px;background:var(--border2);transition:background .2s"></span>
+        <span id="shuffle-cats-thumb" style="position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:#fff;transition:transform .2s;box-shadow:0 1px 4px rgba(0,0,0,.3)"></span>
+      </label>
+    </div>
   </div>
-
-  <!-- Category picker -->
   <div class="card" id="cat-picker-card" style="padding:16px 18px">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
       <h3 style="color:var(--text);font-size:.95rem">📋 Kategorie</h3>
@@ -1138,6 +1147,23 @@ document.getElementById('max-rounds-select').onchange = (e) => {
   gameConfig.maxRounds = parseInt(e.target.value);
   if (roomRef && isHost) update(roomRef, { 'config/maxRounds': gameConfig.maxRounds });
 };
+
+// Shuffle toggle
+const shuffleToggle = document.getElementById('shuffle-cats-toggle');
+const shuffleTrack  = document.getElementById('shuffle-cats-track');
+const shuffleThumb  = document.getElementById('shuffle-cats-thumb');
+
+function updateShuffleUI(on) {
+  shuffleTrack.style.background = on ? 'var(--grad-green)' : 'var(--border2)';
+  shuffleThumb.style.transform  = on ? 'translateX(20px)' : 'translateX(0)';
+}
+
+shuffleToggle.addEventListener('change', () => {
+  const on = shuffleToggle.checked;
+  updateShuffleUI(on);
+  gameConfig.shuffleCats = on;
+  if (roomRef && isHost) update(roomRef, { 'config/shuffleCats': on });
+});
 document.getElementById('start-game-btn').onclick = startGame;
 document.getElementById('leave-lobby-btn').onclick = () => { leaveRoom(); showScreen('screen-home'); };
 document.getElementById('copy-link-btn').onclick = () => {
@@ -1257,16 +1283,26 @@ async function joinRoom() {
 function applyLobbySettings() {
   document.getElementById('time-limit-select').value = gameConfig.timeLimit;
   document.getElementById('max-rounds-select').value = gameConfig.maxRounds;
+  
+  // Shuffle toggle
+  const shuffleOn = gameConfig.shuffleCats || false;
+  document.getElementById('shuffle-cats-toggle').checked = shuffleOn;
+  updateShuffleUI(shuffleOn);
+  
   // Load selected cats from config
   if (gameConfig.selectedCats?.length) {
     selectedCats = new Set(gameConfig.selectedCats);
   }
   const editable = isHost;
   initCatPicker(editable);
+  
   // Disable settings for guests
   const disabled = !isHost;
   document.getElementById('time-limit-select').disabled = disabled;
   document.getElementById('max-rounds-select').disabled = disabled;
+  document.getElementById('shuffle-cats-toggle').disabled = disabled;
+  document.getElementById('shuffle-label').style.opacity = disabled ? '.5' : '1';
+  document.getElementById('shuffle-label').style.pointerEvents = disabled ? 'none' : '';
   document.getElementById('lobby-settings').style.opacity = disabled ? '.5' : '1';
   document.getElementById('lobby-settings').style.pointerEvents = disabled ? 'none' : '';
   document.getElementById('cat-picker-card').style.opacity = disabled ? '.5' : '1';
@@ -1362,8 +1398,7 @@ async function startGame() {
   if (!isHost) return;
   const letter = LETTERS[Math.floor(Math.random() * LETTERS.length)];
   const cats = selectedCats.size > 0 ? [...selectedCats] : DEFAULT_CATS;
-  // Shuffle and pick up to 12 for one round
-  const roundCategories = cats.sort(() => Math.random() - .5).slice(0, Math.min(cats.length, 12));
+  const roundCategories = pickRoundCats(cats);
   await update(roomRef, {
     status: 'letter-draw',
     currentLetter: letter,
@@ -1371,6 +1406,16 @@ async function startGame() {
     roundCategories,
     answers: null, votes: null, roundScores: null
   });
+}
+
+function pickRoundCats(pool) {
+  const shuffle = gameConfig.shuffleCats;
+  if (shuffle) {
+    // Pick 8 random from pool
+    return [...pool].sort(() => Math.random() - .5).slice(0, Math.min(pool.length, 8));
+  }
+  // All selected (up to 12)
+  return [...pool].slice(0, Math.min(pool.length, 12));
 }
 
 // --- LETTER DRAW ---
@@ -1955,7 +2000,7 @@ async function nextRound() {
   if (!isHost) return;
   const letter = LETTERS[Math.floor(Math.random() * LETTERS.length)];
   const cats = selectedCats.size > 0 ? [...selectedCats] : DEFAULT_CATS;
-  const roundCategories = cats.sort(() => Math.random() - .5).slice(0, Math.min(cats.length, 12));
+  const roundCategories = pickRoundCats(cats);
   await update(roomRef, {
     status: 'letter-draw',
     currentLetter: letter,
