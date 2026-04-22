@@ -312,9 +312,18 @@
     <div id="cat-group-content" style="max-height:180px;overflow-y:auto;padding-right:2px"></div>
     <!-- Actions -->
     <div style="display:flex;gap:6px;margin-top:10px;padding-top:10px;border-top:1px solid var(--border)">
-      <button onclick="selectAllGroup()" style="flex:1;padding:7px;border-radius:9px;border:1px solid var(--border2);background:transparent;color:var(--muted2);font-size:.7rem;font-weight:700;cursor:pointer;font-family:inherit;transition:all .15s">✓ Wszystkie</button>
-      <button onclick="clearAllCats()" style="flex:1;padding:7px;border-radius:9px;border:1px solid var(--border2);background:transparent;color:var(--muted2);font-size:.7rem;font-weight:700;cursor:pointer;font-family:inherit;transition:all .15s">✗ Wyczyść</button>
-      <button onclick="randomCats()" style="flex:1;padding:7px;border-radius:9px;border:1px solid rgba(91,79,207,.4);background:rgba(91,79,207,.1);color:var(--accent2);font-size:.7rem;font-weight:700;cursor:pointer;font-family:inherit;transition:all .15s">🎲 Losuj 8</button>
+      <div style="flex:2;display:flex;flex-direction:column;gap:4px">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <span style="font-size:.65rem;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.08em">Ile losować</span>
+          <span id="rand-count-display" style="font-size:.78rem;color:var(--accent2);font-weight:800">8</span>
+        </div>
+        <input type="range" id="rand-count" min="1" max="20" value="8" style="width:100%;accent-color:#5b4fcf;height:4px">
+      </div>
+      <button onclick="randomCats()" style="flex:1;padding:7px;border-radius:9px;border:1px solid rgba(91,79,207,.4);background:rgba(91,79,207,.1);color:var(--accent2);font-size:.7rem;font-weight:700;cursor:pointer;font-family:inherit;transition:all .15s">🎲 Losuj</button>
+    </div>
+    <div style="display:flex;gap:6px;margin-top:6px">
+      <button onclick="selectAllGroup()" style="flex:1;padding:7px;border-radius:9px;border:1px solid var(--border2);background:transparent;color:var(--muted2);font-size:.7rem;font-weight:700;cursor:pointer;font-family:inherit;transition:all .15s">✓ Wszystkie z grupy</button>
+      <button onclick="clearAllCats()" style="flex:1;padding:7px;border-radius:9px;border:1px solid var(--border2);background:transparent;color:var(--muted2);font-size:.7rem;font-weight:700;cursor:pointer;font-family:inherit;transition:all .15s">✗ Wyczyść wszystko</button>
     </div>
   </div>
 
@@ -1013,13 +1022,23 @@ window.clearAllCats = function() {
   updateCatCount(); initCatPicker(isHost); syncCatsToFirebase();
 };
 window.randomCats = function() {
+  const count = parseInt(document.getElementById('rand-count')?.value || 8);
   selectedCats.clear();
-  const all = CATEGORIES.sort(() => Math.random() - .5);
-  all.slice(0, 8).forEach(c => selectedCats.add(c));
+  const all = [...CATEGORIES].sort(() => Math.random() - .5);
+  all.slice(0, count).forEach(c => selectedCats.add(c));
   updateCatCount(); initCatPicker(isHost); syncCatsToFirebase();
 };
 
-document.getElementById('cat-count')?.remove(); // remove old range input if exists
+document.getElementById('cat-count')?.remove();
+
+// Rand count slider
+document.addEventListener('input', (e) => {
+  if (e.target.id === 'rand-count') {
+    const v = e.target.value;
+    const el = document.getElementById('rand-count-display');
+    if (el) el.textContent = v;
+  }
+});
 
 document.getElementById('time-limit-select').onchange = (e) => {
   gameConfig.timeLimit = parseInt(e.target.value);
