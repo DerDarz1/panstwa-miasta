@@ -1654,12 +1654,17 @@ async function submitAnswers() {
     myAnswers[cat] = (document.getElementById(`cat-${i}`)?.value || '').trim();
   });
 
+  // Sanitize keys for Firebase (no /, ., #, $, [, ])
+  const sanitized = {};
+  Object.entries(myAnswers).forEach(([k, v]) => {
+    sanitized[k.replace(/[.#$/\[\]]/g, '_')] = v;
+  });
+
   try {
-    await update(ref(db, `pm-rooms/${roomCode}/answers/${myNick}`), myAnswers);
+    await update(ref(db, `pm-rooms/${roomCode}/answers/${myNick}`), sanitized);
   } catch(e) {
-    // retry once
     await new Promise(r => setTimeout(r, 1000));
-    await update(ref(db, `pm-rooms/${roomCode}/answers/${myNick}`), myAnswers);
+    await update(ref(db, `pm-rooms/${roomCode}/answers/${myNick}`), sanitized);
   }
   document.getElementById('submit-answers-btn').style.display = 'none';
   document.getElementById('answer-waiting').style.display = 'block';
@@ -1689,6 +1694,8 @@ async function checkAllAnswered() {
 }
 
 // --- VOTING ---
+function safeKey(str) { return str.replace(/[.#$/\[\]\s]/g, '_'); }
+
 function doVoting(room) {
   showScreen('screen-voting');
   const answers = room.answers || {};
@@ -1698,9 +1705,6 @@ function doVoting(room) {
 
   const container = document.getElementById('voting-tables');
   container.innerHTML = '';
-
-  // Helper: safe key for data attributes (escape special chars)
-  function safeKey(str) { return str.replace(/[^a-zA-Z0-9]/g, '_'); }
 
   cats.forEach(cat => {
     const card = document.createElement('div');
