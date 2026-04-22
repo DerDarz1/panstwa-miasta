@@ -18,7 +18,40 @@
   table { width:100%; border-collapse:collapse; font-size:.85rem; }
   th { background:#151b27; padding:8px 12px; text-align:left; color:#5d7499; font-weight:700; font-size:.7rem; text-transform:uppercase; letter-spacing:.06em; border-bottom:1px solid #1f2d42; }
   td { padding:9px 12px; border-bottom:1px solid #1a2535; }
-  tr:last-child td { border-bottom:none; }
+
+  /* LOGIN SCREEN */
+  #login-screen {
+    position:fixed; inset:0; background:#07090f; z-index:999;
+    display:flex; align-items:center; justify-content:center;
+  }
+  #login-screen::before {
+    content:''; position:absolute; inset:0; pointer-events:none;
+    background: radial-gradient(ellipse 70% 50% at 50% 40%, rgba(91,79,207,.18) 0%, transparent 65%);
+  }
+  .login-box {
+    background:#0e1117; border:1px solid #2d4060; border-radius:20px;
+    padding:32px 28px; width:100%; max-width:340px;
+    position:relative; z-index:1;
+    box-shadow:0 20px 60px rgba(0,0,0,.6);
+  }
+  .login-box h2 { font-size:1.3rem; font-weight:900; margin-bottom:4px; background:linear-gradient(135deg,#5b4fcf,#c084fc); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
+  .login-box p { color:#5d7499; font-size:.82rem; margin-bottom:20px; }
+  .login-box input {
+    width:100%; background:#151b27; border:1px solid #2d4060; border-radius:12px;
+    padding:12px 14px; color:#eef2ff; font-size:1rem; outline:none;
+    font-family:inherit; margin-bottom:12px;
+    transition:border-color .18s, box-shadow .18s;
+  }
+  .login-box input:focus { border-color:#8b7ff5; box-shadow:0 0 0 3px rgba(91,79,207,.2); }
+  .login-box button {
+    width:100%; padding:13px; border-radius:12px; border:none;
+    background:linear-gradient(135deg,#5b4fcf,#8b7ff5); color:#fff;
+    font-size:.95rem; font-weight:700; cursor:pointer; font-family:inherit;
+    transition:filter .15s;
+  }
+  .login-box button:hover { filter:brightness(1.1); }
+  .login-err { color:#f56565; font-size:.8rem; text-align:center; margin-top:8px; min-height:18px; }
+</style>  tr:last-child td { border-bottom:none; }
   tr:hover td { background:rgba(91,79,207,.04); }
   .badge { display:inline-block; padding:2px 8px; border-radius:20px; font-size:.68rem; font-weight:700; }
   .badge-active { background:rgba(14,196,184,.15); color:#0ec4b8; border:1px solid rgba(14,196,184,.3); }
@@ -33,7 +66,18 @@
 </head>
 <body>
 
-<h1>📊 Panel Admina</h1>
+<!-- LOGIN SCREEN -->
+<div id="login-screen">
+  <div class="login-box">
+    <h2>🔐 Panel Admina</h2>
+    <p>Państwa Miasta — dostęp chroniony</p>
+    <input type="password" id="pwd-input" placeholder="Hasło..." autocomplete="off">
+    <button onclick="checkPwd()">Zaloguj →</button>
+    <div class="login-err" id="login-err"></div>
+  </div>
+</div>
+
+<div id="admin-content" style="display:none">
 <p class="sub">Państwa Miasta — statystyki w czasie rzeczywistym</p>
 
 <button class="refresh-btn" onclick="loadData()">🔄 Odśwież</button>
@@ -138,6 +182,36 @@ setInterval(loadData, 30000);
 
 // Live listener
 onValue(ref(db, 'pm-rooms'), () => loadData());
+</script>
+
+<script>
+// Musi być poza type="module" żeby onclick działał
+const HASH = '6a3b2c1d9e8f7a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b';
+
+function checkPwd() {
+  const val = document.getElementById('pwd-input').value;
+  // Proste porównanie — hasło: PM@admin2025
+  if (val === atob('UE1AYWRtaW4yMDI1')) {
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('admin-content').style.display = 'block';
+    sessionStorage.setItem('pm-admin', '1');
+  } else {
+    document.getElementById('login-err').textContent = '❌ Złe hasło';
+    document.getElementById('pwd-input').value = '';
+    document.getElementById('pwd-input').focus();
+  }
+}
+
+// Enter key
+document.getElementById('pwd-input').addEventListener('keydown', function(e) {
+  if (e.key === 'Enter') checkPwd();
+});
+
+// Auto-login if session active
+if (sessionStorage.getItem('pm-admin') === '1') {
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('admin-content').style.display = 'block';
+}
 </script>
 </body>
 </html>
