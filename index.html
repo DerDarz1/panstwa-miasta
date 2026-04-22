@@ -1707,42 +1707,74 @@ function doVoting(room) {
   const container = document.getElementById('voting-tables');
   container.innerHTML = '';
 
-  cats.forEach(cat => {
-    const card = document.createElement('div');
-    card.className = 'card';
-    card.style.marginBottom = '12px';
-
-    const safeCat = safeKey(cat);
-    let html = `<h3 style="margin-bottom:8px">${cat}</h3><table class="voting-table"><tbody>`;
-    players.forEach(player => {
-      const safePlayer = safeKey(player);
-      const answer = answers[player]?.[cat] || '';
-      const isMe = player === myNick;
-      html += `<tr data-row="${safePlayer}__${safeCat}">
-        <td style="width:100px;font-weight:600">${player}</td>
-        <td data-answer-cell="${safePlayer}__${safeCat}" style="${isMe ? 'color:var(--accent);font-style:italic' : ''}">${answer || '<span style="color:#475569">brak</span>'}</td>
-        <td style="width:90px;text-align:right">
-          ${!isMe && answer ? `
-            <div style="display:flex;gap:6px;justify-content:flex-end">
-              <button class="vote-btn approve" data-player="${safePlayer}" data-cat="${safeCat}" data-val="1" data-real-player="${player}" data-real-cat="${cat}">✓</button>
-              <button class="vote-btn reject"  data-player="${safePlayer}" data-cat="${safeCat}" data-val="0" data-real-player="${player}" data-real-cat="${cat}">✗</button>
-            </div>
-          ` : '<span style="font-size:.7rem;color:var(--muted)">—</span>'}
-        </td>
-      </tr>`;
-    });
-    html += '</tbody></table>';
-    card.innerHTML = html;
-    container.appendChild(card);
-  });
-
-  // Vote indicators row — who voted
+  // Who voted indicator
   const indicatorCard = document.createElement('div');
   indicatorCard.className = 'card';
-  indicatorCard.style.cssText = 'margin-bottom:12px;padding:12px 16px';
+  indicatorCard.style.cssText = 'margin-bottom:10px;padding:12px 16px';
   indicatorCard.innerHTML = `<div class="section-title" style="margin-bottom:8px">Kto zagłosował</div>
-    <div id="vote-indicators" style="display:flex;flex-wrap:wrap;gap:8px"></div>`;
-  container.prepend(indicatorCard);
+    <div id="vote-indicators" style="display:flex;flex-wrap:wrap;gap:6px"></div>`;
+  container.appendChild(indicatorCard);
+
+  cats.forEach(cat => {
+    const safeCat = safeKey(cat);
+
+    // Category section
+    const section = document.createElement('div');
+    section.style.marginBottom = '10px';
+
+    // Category label
+    const label = document.createElement('div');
+    label.style.cssText = 'font-size:.65rem;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;padding:0 4px;margin-bottom:6px';
+    label.textContent = cat;
+    section.appendChild(label);
+
+    players.forEach(player => {
+      const safePlayer = safeKey(player);
+      const answer = answers[player]?.[safeKey(cat)] || answers[player]?.[cat] || '';
+      const isMe = player === myNick;
+
+      const row = document.createElement('div');
+      row.style.cssText = 'display:flex;align-items:center;gap:10px;background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:12px 14px;margin-bottom:6px;transition:border-color .2s';
+      row.dataset.row = `${safePlayer}__${safeCat}`;
+
+      // Avatar
+      const av = document.createElement('div');
+      av.style.cssText = 'width:30px;height:30px;border-radius:50%;background:var(--grad);display:flex;align-items:center;justify-content:center;font-size:.75rem;font-weight:900;color:#fff;flex-shrink:0';
+      av.textContent = player[0].toUpperCase();
+
+      // Player + answer
+      const info = document.createElement('div');
+      info.style.cssText = 'flex:1;min-width:0';
+      info.innerHTML = `
+        <div style="font-size:.72rem;color:var(--muted);font-weight:700;margin-bottom:2px">${player}</div>
+        <div data-answer-cell="${safePlayer}__${safeCat}" style="font-size:.95rem;font-weight:700;${isMe ? 'color:var(--accent2);font-style:italic' : ''}">
+          ${answer || '<span style="color:var(--muted);font-style:italic;font-size:.85rem">brak odpowiedzi</span>'}
+        </div>
+      `;
+
+      row.appendChild(av);
+      row.appendChild(info);
+
+      if (!isMe && answer) {
+        const btns = document.createElement('div');
+        btns.style.cssText = 'display:flex;gap:6px;flex-shrink:0';
+        btns.innerHTML = `
+          <button class="vote-btn approve" data-player="${safePlayer}" data-cat="${safeCat}" data-val="1" data-real-player="${player}" data-real-cat="${cat}" title="Poprawna">✓</button>
+          <button class="vote-btn reject"  data-player="${safePlayer}" data-cat="${safeCat}" data-val="0" data-real-player="${player}" data-real-cat="${cat}" title="Niepoprawna">✗</button>
+        `;
+        row.appendChild(btns);
+      } else if (isMe) {
+        const tag = document.createElement('div');
+        tag.style.cssText = 'font-size:.68rem;color:var(--muted);background:var(--surface2);border:1px solid var(--border2);border-radius:20px;padding:3px 10px;flex-shrink:0';
+        tag.textContent = 'Ty';
+        row.appendChild(tag);
+      }
+
+      section.appendChild(row);
+    });
+
+    container.appendChild(section);
+  });
 
   // Event delegation
   container.onclick = (e) => {
@@ -1754,11 +1786,25 @@ function doVoting(room) {
     if (!myVotes[rp]) myVotes[rp] = {};
     myVotes[rp][rc] = val === '1';
 
-    container.querySelectorAll(`.vote-btn[data-player="${player}"][data-cat="${cat}"]`).forEach(b => b.classList.remove('chosen'));
+    // Update button styles
+    const row = btn.closest('[data-row]');
+    row?.querySelectorAll('.vote-btn').forEach(b => {
+      b.classList.remove('chosen');
+      b.style.opacity = '.2';
+    });
     btn.classList.add('chosen');
+    btn.style.opacity = '1';
     soundVote();
 
+    // Update row border
+    if (row) {
+      row.style.borderColor = val === '1' ? 'rgba(14,196,184,.4)' : 'rgba(245,101,101,.4)';
+    }
+
     // Live push
+    update(ref(db, `pm-rooms/${roomCode}/liveVotes/${myNick}/${rp}/${safeKey(rc)}`), val === '1');
+    updateLiveVoteDisplay(rp, rc, null);
+  };    // Live push
     update(ref(db, `pm-rooms/${roomCode}/liveVotes/${myNick}/${rp}/${safeKey(rc)}`), val === '1');
     updateLiveVoteDisplay(rp, rc, null);
   };
@@ -1818,6 +1864,12 @@ function doVoting(room) {
     answerCell.style.textDecoration = majority ? 'line-through' : '';
     answerCell.style.color = majority ? 'var(--red)' : (yes > no && total > 0) ? 'var(--green)' : '';
 
+    // Update row border
+    const row = answerCell.closest('[data-row]');
+    if (row && total > 0) {
+      row.style.borderColor = majority ? 'rgba(245,101,101,.4)' : (yes > no ? 'rgba(14,196,184,.4)' : 'var(--border)');
+    }
+
     // Render dots
     let dotsEl = answerCell.querySelector('.vote-dots');
     if (!dotsEl) {
@@ -1827,7 +1879,7 @@ function doVoting(room) {
       answerCell.appendChild(dotsEl);
     }
     dotsEl.innerHTML = dots.map(v =>
-      `<span style="width:8px;height:8px;border-radius:50%;background:${v ? 'var(--green)' : 'var(--red)'};display:inline-block;box-shadow:0 0 4px ${v ? 'rgba(14,196,184,.5)' : 'rgba(245,101,101,.5)'}"></span>`
+      `<span style="width:7px;height:7px;border-radius:50%;background:${v ? 'var(--green)' : 'var(--red)'};display:inline-block;box-shadow:0 0 4px ${v ? 'rgba(14,196,184,.5)' : 'rgba(245,101,101,.5)'}"></span>`
     ).join('');
   }
 
