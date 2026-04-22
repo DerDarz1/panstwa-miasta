@@ -3,86 +3,63 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>PM Admin</title>
+<title>Admin – Państwa Miasta</title>
 <style>
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { background: #07090f; color: #eef2ff; font-family: 'Inter', system-ui, sans-serif; min-height: 100vh; padding: 24px 16px; }
-  h1 { font-size: 1.4rem; font-weight: 900; margin-bottom: 4px; background: linear-gradient(135deg,#5b4fcf,#c084fc); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
-  .sub { font-size: .8rem; color: #5d7499; margin-bottom: 24px; }
-  .card { background: #0e1117; border: 1px solid #1f2d42; border-radius: 14px; padding: 16px; margin-bottom: 12px; }
-  .stat-row { display: flex; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; }
-  .stat { background: #0e1117; border: 1px solid #1f2d42; border-radius: 12px; padding: 14px 18px; flex: 1; min-width: 120px; }
-  .stat-val { font-size: 2rem; font-weight: 900; background: linear-gradient(135deg,#5b4fcf,#c084fc); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
-  .stat-label { font-size: .7rem; color: #5d7499; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; margin-top: 2px; }
-  table { width: 100%; border-collapse: collapse; font-size: .82rem; }
-  th { background: #151b27; padding: 8px 12px; text-align: left; color: #5d7499; font-weight: 700; font-size: .68rem; text-transform: uppercase; letter-spacing: .08em; border-bottom: 1px solid #1f2d42; }
-  td { padding: 9px 12px; border-bottom: 1px solid #1f2d42; }
-  tr:last-child td { border-bottom: none; }
-  tr:hover td { background: rgba(91,79,207,.04); }
-  .badge { display: inline-block; padding: 2px 8px; border-radius: 20px; font-size: .68rem; font-weight: 700; }
-  .badge-green { background: rgba(14,196,184,.15); color: #0ec4b8; border: 1px solid rgba(14,196,184,.25); }
-  .badge-purple { background: rgba(91,79,207,.15); color: #8b7ff5; border: 1px solid rgba(91,79,207,.25); }
-  input { background: #151b27; border: 1px solid #2d4060; border-radius: 10px; padding: 10px 14px; color: #eef2ff; font-size: .9rem; outline: none; width: 100%; font-family: inherit; }
-  input:focus { border-color: #8b7ff5; }
-  button { padding: 10px 20px; border-radius: 10px; border: none; background: linear-gradient(135deg,#5b4fcf,#8b7ff5); color: #fff; font-weight: 700; cursor: pointer; font-family: inherit; font-size: .9rem; }
-  .section-title { font-size: .7rem; color: #5d7499; font-weight: 800; text-transform: uppercase; letter-spacing: .1em; margin-bottom: 10px; }
-  #login-screen { max-width: 320px; margin: 80px auto; display: flex; flex-direction: column; gap: 12px; }
-  #main { display: none; max-width: 900px; margin: 0 auto; }
-  .nick-chip { display: inline-block; background: rgba(91,79,207,.12); border: 1px solid rgba(91,79,207,.2); border-radius: 20px; padding: 3px 10px; font-size: .75rem; color: #c4b5fd; margin: 2px; }
-  .refresh-btn { float: right; padding: 6px 14px; font-size: .75rem; border-radius: 8px; }
-  .empty { color: #5d7499; font-size: .85rem; text-align: center; padding: 20px; }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { background:#07090f; color:#eef2ff; font-family:'Segoe UI',system-ui,sans-serif; min-height:100vh; padding:24px 16px; }
+  h1 { font-size:1.5rem; font-weight:900; margin-bottom:4px; background:linear-gradient(135deg,#5b4fcf,#c084fc); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
+  .sub { color:#5d7499; font-size:.85rem; margin-bottom:24px; }
+  .stats-row { display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:12px; margin-bottom:24px; }
+  .stat-card { background:#0e1117; border:1px solid #1f2d42; border-radius:14px; padding:16px; text-align:center; }
+  .stat-val { font-size:2rem; font-weight:900; color:#8b7ff5; }
+  .stat-label { font-size:.72rem; color:#5d7499; font-weight:700; text-transform:uppercase; letter-spacing:.08em; margin-top:4px; }
+  .card { background:#0e1117; border:1px solid #1f2d42; border-radius:14px; padding:16px; margin-bottom:16px; }
+  .card h2 { font-size:.9rem; font-weight:800; color:#8ba3c7; text-transform:uppercase; letter-spacing:.08em; margin-bottom:12px; }
+  table { width:100%; border-collapse:collapse; font-size:.85rem; }
+  th { background:#151b27; padding:8px 12px; text-align:left; color:#5d7499; font-weight:700; font-size:.7rem; text-transform:uppercase; letter-spacing:.06em; border-bottom:1px solid #1f2d42; }
+  td { padding:9px 12px; border-bottom:1px solid #1a2535; }
+  tr:last-child td { border-bottom:none; }
+  tr:hover td { background:rgba(91,79,207,.04); }
+  .badge { display:inline-block; padding:2px 8px; border-radius:20px; font-size:.68rem; font-weight:700; }
+  .badge-active { background:rgba(14,196,184,.15); color:#0ec4b8; border:1px solid rgba(14,196,184,.3); }
+  .badge-done { background:rgba(91,79,207,.15); color:#8b7ff5; border:1px solid rgba(91,79,207,.3); }
+  .badge-lobby { background:rgba(246,201,14,.12); color:#f6c90e; border:1px solid rgba(246,201,14,.25); }
+  .nick-chip { display:inline-block; background:#151b27; border:1px solid #2d4060; border-radius:20px; padding:3px 9px; font-size:.75rem; margin:2px; }
+  .refresh-btn { background:linear-gradient(135deg,#5b4fcf,#8b7ff5); color:#fff; border:none; border-radius:10px; padding:9px 18px; font-size:.85rem; font-weight:700; cursor:pointer; margin-bottom:20px; }
+  .refresh-btn:hover { filter:brightness(1.1); }
+  .empty { color:#5d7499; font-size:.85rem; text-align:center; padding:20px; }
+  #loading { color:#5d7499; text-align:center; padding:40px; font-size:.9rem; }
 </style>
 </head>
 <body>
 
-<div id="login-screen">
-  <div style="text-align:center;margin-bottom:8px">
-    <div style="font-size:3rem">🔐</div>
-    <h1 style="margin-top:8px">PM Admin</h1>
-    <p style="font-size:.8rem;color:#5d7499;margin-top:4px">Panel administracyjny</p>
-  </div>
-  <input type="password" id="pwd-input" placeholder="Hasło dostępu" autocomplete="off">
-  <button onclick="checkPwd()">Zaloguj</button>
-  <p id="pwd-err" style="color:#f56565;font-size:.8rem;text-align:center;min-height:16px"></p>
+<h1>📊 Panel Admina</h1>
+<p class="sub">Państwa Miasta — statystyki w czasie rzeczywistym</p>
+
+<button class="refresh-btn" onclick="loadData()">🔄 Odśwież</button>
+
+<div class="stats-row">
+  <div class="stat-card"><div class="stat-val" id="stat-rooms">—</div><div class="stat-label">Aktywne pokoje</div></div>
+  <div class="stat-card"><div class="stat-val" id="stat-players">—</div><div class="stat-label">Graczy online</div></div>
+  <div class="stat-card"><div class="stat-val" id="stat-total-nicks">—</div><div class="stat-label">Unikalnych nicków</div></div>
+  <div class="stat-card"><div class="stat-val" id="stat-games">—</div><div class="stat-label">Rozegranych gier</div></div>
 </div>
 
-<div id="main">
-  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
-    <div>
-      <h1>PM Admin</h1>
-      <p class="sub">Państwa Miasta — panel statystyk</p>
-    </div>
-    <button class="refresh-btn" onclick="loadData()">🔄 Odśwież</button>
-  </div>
-
-  <div class="stat-row" id="stats-row">
-    <div class="stat"><div class="stat-val" id="stat-rooms">—</div><div class="stat-label">Pokoi łącznie</div></div>
-    <div class="stat"><div class="stat-val" id="stat-players">—</div><div class="stat-label">Unikalnych graczy</div></div>
-    <div class="stat"><div class="stat-val" id="stat-active">—</div><div class="stat-label">Aktywnych pokoi</div></div>
-    <div class="stat"><div class="stat-val" id="stat-games">—</div><div class="stat-label">Rozegranych gier</div></div>
-  </div>
-
-  <div class="card">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
-      <div class="section-title">Aktywne pokoje</div>
-    </div>
-    <div id="active-rooms-table"></div>
-  </div>
-
-  <div class="card">
-    <div class="section-title">Wszyscy gracze (unikalne nicki)</div>
-    <div id="all-nicks" style="margin-top:4px"></div>
-  </div>
-
-  <div class="card">
-    <div class="section-title">Historia pokoi</div>
-    <div id="rooms-table"></div>
-  </div>
+<div class="card">
+  <h2>🏟️ Aktywne pokoje</h2>
+  <div id="rooms-table"><div class="empty">Ładowanie...</div></div>
 </div>
+
+<div class="card">
+  <h2>👥 Wszyscy gracze (historia)</h2>
+  <div id="nicks-table"><div class="empty">Ładowanie...</div></div>
+</div>
+
+<div id="loading" style="display:none">Ładowanie danych...</div>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+import { getDatabase, ref, get, onValue } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyB7c4oqrupOt3ksDLntwJXCx7dL8GWMy0w",
@@ -97,111 +74,70 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 
-// Simple password check (client-side only — for basic protection)
-const ADMIN_PWD = 'pm2024admin';
-
-window.checkPwd = function() {
-  const val = document.getElementById('pwd-input').value;
-  if (val === ADMIN_PWD) {
-    document.getElementById('login-screen').style.display = 'none';
-    document.getElementById('main').style.display = 'block';
-    loadData();
-  } else {
-    document.getElementById('pwd-err').textContent = 'Złe hasło';
-  }
-};
-
-document.getElementById('pwd-input').addEventListener('keydown', e => {
-  if (e.key === 'Enter') window.checkPwd();
-});
+const allNicks = new Set();
+let totalGames = 0;
 
 window.loadData = async function() {
+  document.getElementById('rooms-table').innerHTML = '<div class="empty">Ładowanie...</div>';
+
   const snap = await get(ref(db, 'pm-rooms'));
   const rooms = snap.val() || {};
-
-  const allNicks = new Set();
-  let activeCount = 0;
-  let finishedCount = 0;
-  const roomList = [];
-
-  Object.entries(rooms).forEach(([code, room]) => {
-    if (!room) return;
-    const players = Object.keys(room.players || {});
-    players.forEach(n => allNicks.add(n));
-
-    const isActive = room.status && room.status !== 'finished';
-    if (isActive) activeCount++;
-    if (room.round > 0) finishedCount++;
-
-    roomList.push({
-      code,
-      host: room.host || '?',
-      status: room.status || '?',
-      round: room.round || 0,
-      maxRounds: room.config?.maxRounds || '?',
-      players,
-      created: room.createdAt ? new Date(room.createdAt).toLocaleString('pl-PL') : '?',
-      isActive
-    });
-  });
-
-  // Sort by created desc
-  roomList.sort((a, b) => (b.created > a.created ? 1 : -1));
+  const roomList = Object.entries(rooms);
 
   // Stats
+  let totalPlayers = 0;
+  roomList.forEach(([code, room]) => {
+    const players = Object.values(room.players || {});
+    totalPlayers += players.length;
+    players.forEach(p => allNicks.add(p.nick));
+    if (room.status === 'scores' || room.round > 0) totalGames++;
+  });
+
   document.getElementById('stat-rooms').textContent = roomList.length;
-  document.getElementById('stat-players').textContent = allNicks.size;
-  document.getElementById('stat-active').textContent = activeCount;
-  document.getElementById('stat-games').textContent = finishedCount;
+  document.getElementById('stat-players').textContent = totalPlayers;
+  document.getElementById('stat-total-nicks').textContent = allNicks.size;
+  document.getElementById('stat-games').textContent = totalGames;
+
+  // Rooms table
+  if (roomList.length === 0) {
+    document.getElementById('rooms-table').innerHTML = '<div class="empty">Brak aktywnych pokoi</div>';
+  } else {
+    let html = `<table><thead><tr><th>Kod</th><th>Host</th><th>Status</th><th>Runda</th><th>Gracze</th><th>Czas</th></tr></thead><tbody>`;
+    roomList.forEach(([code, room]) => {
+      const players = Object.values(room.players || {});
+      const statusMap = { lobby:'lobby', 'letter-draw':'losowanie', answering:'odpowiedzi', voting:'głosowanie', scores:'wyniki' };
+      const statusClass = { lobby:'badge-lobby', 'letter-draw':'badge-active', answering:'badge-active', voting:'badge-active', scores:'badge-done' };
+      const age = room.createdAt ? Math.floor((Date.now() - room.createdAt) / 60000) : '?';
+      html += `<tr>
+        <td><strong>${code}</strong></td>
+        <td>${room.host || '?'}</td>
+        <td><span class="badge ${statusClass[room.status] || 'badge-lobby'}">${statusMap[room.status] || room.status}</span></td>
+        <td>${room.round || 0} / ${room.config?.maxRounds || '?'}</td>
+        <td>${players.map(p => `<span class="nick-chip">${p.nick}</span>`).join('')}</td>
+        <td>${age} min temu</td>
+      </tr>`;
+    });
+    html += '</tbody></table>';
+    document.getElementById('rooms-table').innerHTML = html;
+  }
 
   // All nicks
-  const nicksEl = document.getElementById('all-nicks');
   if (allNicks.size === 0) {
-    nicksEl.innerHTML = '<div class="empty">Brak danych</div>';
+    document.getElementById('nicks-table').innerHTML = '<div class="empty">Brak danych</div>';
   } else {
-    nicksEl.innerHTML = [...allNicks].sort().map(n =>
-      `<span class="nick-chip">${n}</span>`
-    ).join('');
-  }
-
-  // Active rooms
-  const activeRooms = roomList.filter(r => r.isActive);
-  const activeEl = document.getElementById('active-rooms-table');
-  if (activeRooms.length === 0) {
-    activeEl.innerHTML = '<div class="empty">Brak aktywnych pokoi</div>';
-  } else {
-    activeEl.innerHTML = `<table>
-      <thead><tr><th>Kod</th><th>Host</th><th>Status</th><th>Runda</th><th>Gracze</th></tr></thead>
-      <tbody>${activeRooms.map(r => `
-        <tr>
-          <td><code style="color:#8b7ff5;font-weight:700">${r.code}</code></td>
-          <td>${r.host}</td>
-          <td><span class="badge badge-green">${r.status}</span></td>
-          <td>${r.round} / ${r.maxRounds}</td>
-          <td>${r.players.map(p => `<span class="nick-chip">${p}</span>`).join('')}</td>
-        </tr>`).join('')}
-      </tbody></table>`;
-  }
-
-  // All rooms history
-  const roomsEl = document.getElementById('rooms-table');
-  if (roomList.length === 0) {
-    roomsEl.innerHTML = '<div class="empty">Brak danych</div>';
-  } else {
-    roomsEl.innerHTML = `<table>
-      <thead><tr><th>Kod</th><th>Host</th><th>Status</th><th>Runda</th><th>Gracze</th><th>Utworzono</th></tr></thead>
-      <tbody>${roomList.map(r => `
-        <tr>
-          <td><code style="color:#8b7ff5;font-weight:700">${r.code}</code></td>
-          <td>${r.host}</td>
-          <td><span class="badge ${r.isActive ? 'badge-green' : 'badge-purple'}">${r.status}</span></td>
-          <td>${r.round} / ${r.maxRounds}</td>
-          <td>${r.players.map(p => `<span class="nick-chip">${p}</span>`).join('')}</td>
-          <td style="color:#5d7499;font-size:.78rem">${r.created}</td>
-        </tr>`).join('')}
-      </tbody></table>`;
+    const sorted = [...allNicks].sort();
+    document.getElementById('nicks-table').innerHTML =
+      `<div style="display:flex;flex-wrap:wrap;gap:6px;padding:4px 0">${sorted.map(n => `<span class="nick-chip">${n}</span>`).join('')}</div>
+       <p style="font-size:.72rem;color:#5d7499;margin-top:10px">Łącznie: ${allNicks.size} unikalnych nicków z aktywnych pokoi</p>`;
   }
 };
+
+// Auto-refresh co 30s
+loadData();
+setInterval(loadData, 30000);
+
+// Live listener
+onValue(ref(db, 'pm-rooms'), () => loadData());
 </script>
 </body>
 </html>

@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="pl">
 <head>
 <meta charset="UTF-8">
@@ -2294,14 +2294,15 @@ if ('serviceWorker' in navigator) {
 </style>
 
 <script type="module">
-import { getDatabase, ref, push, onValue, serverTimestamp }
+import { ref, push, onValue }
   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
-import { initializeApp, getApps }
+import { getApps }
   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getDatabase } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 
 // Reuse existing app
-const app = getApps()[0];
-const db = getDatabase(app);
+const _app = getApps()[0];
+const _db = getDatabase(_app);
 
 const fab = document.getElementById('chat-fab');
 const panel = document.getElementById('chat-panel');
@@ -2349,7 +2350,7 @@ function sendMsg() {
   const text = input.value.trim();
   if (!text || !chatRoomCode) return;
   const nick = localStorage.getItem('pm-nick') || 'Gracz';
-  push(ref(db, `pm-rooms/${chatRoomCode}/chat`), {
+  push(ref(_db, `pm-rooms/${chatRoomCode}/chat`), {
     nick, text, t: Date.now()
   });
   input.value = '';
@@ -2361,7 +2362,7 @@ input.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefau
 function subscribeChat() {
   if (!chatRoomCode) return;
   if (chatUnsub) chatUnsub();
-  chatUnsub = onValue(ref(db, `pm-rooms/${chatRoomCode}/chat`), snap => {
+  chatUnsub = onValue(ref(_db, `pm-rooms/${chatRoomCode}/chat`), snap => {
     const msgs = snap.val();
     if (!msgs) return;
     const list = Object.values(msgs).sort((a, b) => a.t - b.t);
