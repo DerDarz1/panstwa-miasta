@@ -193,6 +193,19 @@
   .answer-progress-dot { flex:1; height:3px; border-radius:2px; background:var(--border); transition:background .3s; }
   .answer-progress-dot.filled { background:var(--grad-green); }
 
+  /* SEGMENTED CONTROLS */
+  .seg-group { display:flex; gap:4px; flex-wrap:wrap; }
+  .seg-btn {
+    flex:1; min-width:36px; padding:7px 4px;
+    border-radius:9px; border:1px solid var(--border2);
+    background:var(--surface2); color:var(--muted2);
+    font-size:.78rem; font-weight:700; cursor:pointer;
+    font-family:inherit; transition:all .12s; white-space:nowrap;
+    width:auto;
+  }
+  .seg-btn:hover { border-color:var(--accent2); color:var(--text); }
+  .seg-btn.seg-active { background:var(--grad); color:#fff; border-color:transparent; box-shadow:0 2px 10px rgba(91,79,207,.4); }
+
   #preview-bar { position:fixed; bottom:0; left:0; right:0; z-index:9999; background:rgba(7,9,15,.97); backdrop-filter:blur(16px); border-top:1px solid var(--border2); padding:8px 12px 12px; display:flex; align-items:center; gap:6px; overflow-x:auto; -webkit-overflow-scrolling:touch; }
   #preview-bar::-webkit-scrollbar { display:none; }
   .pv-btn { flex-shrink:0; padding:6px 12px; border-radius:8px; border:1px solid var(--border2); background:var(--surface2); color:var(--muted); font-size:.68rem; font-weight:700; cursor:pointer; width:auto; font-family:inherit; transition:all .12s; }
@@ -347,26 +360,34 @@
       <h3 style="color:var(--text);font-size:.95rem">⚙️ Ustawienia</h3>
       <span style="font-size:.7rem;color:var(--muted)">tylko host może zmieniać</span>
     </div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+    <div style="display:flex;flex-direction:column;gap:12px">
       <div>
         <div class="section-title">Limit czasu</div>
-        <select id="time-limit-select">
-          <option value="0">⏳ Bez limitu</option>
-          <option value="60">⏱ 1 min</option>
-          <option value="120" selected>⏱ 2 min</option>
-          <option value="180">⏱ 3 min</option>
-          <option value="300">⏱ 5 min</option>
-        </select>
+        <div class="seg-group" id="time-seg">
+          <button class="seg-btn" data-val="0">∞</button>
+          <button class="seg-btn" data-val="60">1 min</button>
+          <button class="seg-btn seg-active" data-val="120">2 min</button>
+          <button class="seg-btn" data-val="180">3 min</button>
+          <button class="seg-btn" data-val="300">5 min</button>
+        </div>
       </div>
       <div>
         <div class="section-title">Liczba rund</div>
-        <select id="max-rounds-select">
-          <option value="3">3 rundy</option>
-          <option value="5" selected>5 rund</option>
-          <option value="10">10 rund</option>
-        </select>
+        <div class="seg-group" id="rounds-seg">
+          <button class="seg-btn" data-val="3">3</button>
+          <button class="seg-btn" data-val="4">4</button>
+          <button class="seg-btn seg-active" data-val="5">5</button>
+          <button class="seg-btn" data-val="6">6</button>
+          <button class="seg-btn" data-val="7">7</button>
+          <button class="seg-btn" data-val="8">8</button>
+          <button class="seg-btn" data-val="9">9</button>
+          <button class="seg-btn" data-val="10">10</button>
+        </div>
       </div>
     </div>
+    <!-- hidden selects for compat -->
+    <select id="time-limit-select" style="display:none"><option value="0" selected></option></select>
+    <select id="max-rounds-select" style="display:none"><option value="5" selected></option></select>
     <div style="display:flex;align-items:center;justify-content:space-between;margin-top:12px;padding-top:12px;border-top:1px solid var(--border)">
       <div>
         <div style="font-size:.85rem;font-weight:700;color:var(--text)">🎲 Losuj kategorie co rundę</div>
@@ -1139,15 +1160,29 @@ window.randomCats = function() {
 
 document.getElementById('cat-count')?.remove(); // remove old range input if exists
 
-document.getElementById('time-limit-select').onchange = (e) => {
-  gameConfig.timeLimit = parseInt(e.target.value);
-  if (roomRef && isHost) update(roomRef, { 'config/timeLimit': gameConfig.timeLimit });
-};
-document.getElementById('max-rounds-select').onchange = (e) => {
-  gameConfig.maxRounds = parseInt(e.target.value);
-  if (roomRef && isHost) update(roomRef, { 'config/maxRounds': gameConfig.maxRounds });
-};
+// Segmented controls
+function initSegGroup(groupId, configKey, firebaseKey) {
+  document.getElementById(groupId)?.querySelectorAll('.seg-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      if (!isHost) return;
+      const val = parseInt(btn.dataset.val);
+      gameConfig[configKey] = val;
+      setSegActive(groupId, val);
+      if (roomRef) update(roomRef, { [`config/${firebaseKey}`]: val });
+    });
+  });
+}
+function setSegActive(groupId, val) {
+  document.getElementById(groupId)?.querySelectorAll('.seg-btn').forEach(b => {
+    b.classList.toggle('seg-active', parseInt(b.dataset.val) === val);
+  });
+}
+initSegGroup('time-seg', 'timeLimit', 'timeLimit');
+initSegGroup('rounds-seg', 'maxRounds', 'maxRounds');
 
+// keep hidden selects in sync (used by applyLobbySettings)
+document.getElementById('time-limit-select').onchange = () => {};
+document.getElementById('max-rounds-select').onchange = () => {};
 // Shuffle toggle
 const shuffleToggle = document.getElementById('shuffle-cats-toggle');
 const shuffleTrack  = document.getElementById('shuffle-cats-track');
@@ -1283,6 +1318,8 @@ async function joinRoom() {
 function applyLobbySettings() {
   document.getElementById('time-limit-select').value = gameConfig.timeLimit;
   document.getElementById('max-rounds-select').value = gameConfig.maxRounds;
+  setSegActive('time-seg', gameConfig.timeLimit);
+  setSegActive('rounds-seg', gameConfig.maxRounds);
   
   // Shuffle toggle
   const shuffleOn = gameConfig.shuffleCats || false;
@@ -1304,8 +1341,7 @@ function applyLobbySettings() {
   document.getElementById('shuffle-label').style.opacity = disabled ? '.5' : '1';
   document.getElementById('shuffle-label').style.pointerEvents = disabled ? 'none' : '';
   document.getElementById('lobby-settings').style.opacity = disabled ? '.5' : '1';
-  document.getElementById('lobby-settings').style.pointerEvents = disabled ? 'none' : '';
-  document.getElementById('cat-picker-card').style.opacity = disabled ? '.5' : '1';
+  document.getElementById('lobby-settings').style.pointerEvents = disabled ? 'none' : '';  document.getElementById('cat-picker-card').style.opacity = disabled ? '.5' : '1';
   document.getElementById('cat-picker-card').style.pointerEvents = disabled ? 'none' : '';
 }
 
