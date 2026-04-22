@@ -215,6 +215,75 @@
   .draw-cats-title { font-size:.65rem; color:var(--muted); font-weight:800; text-transform:uppercase; letter-spacing:.1em; margin-bottom:10px; }
   .draw-cat-chip { display:inline-flex; align-items:center; gap:4px; background:rgba(91,79,207,.1); border:1px solid rgba(91,79,207,.2); border-radius:20px; padding:4px 10px; font-size:.72rem; color:var(--accent3); font-weight:700; margin:3px; animation:chipIn .2s ease both; }
   @keyframes chipIn { from{opacity:0;transform:scale(.8)} to{opacity:1;transform:none} }
+
+  /* SPLASH */
+  #splash {
+    position: fixed; inset: 0; z-index: 99999;
+    background: var(--bg);
+    display: flex; align-items: center; justify-content: center;
+    flex-direction: column;
+  }
+  #splash::before {
+    content: '';
+    position: absolute; inset: 0;
+    background:
+      radial-gradient(ellipse 70% 50% at 50% 40%, rgba(91,79,207,.22) 0%, transparent 65%);
+  }
+  #splash-inner {
+    display: flex; flex-direction: column; align-items: center; gap: 20px;
+    position: relative; z-index: 1;
+  }
+  #splash-ball {
+    font-size: 5rem;
+    filter: drop-shadow(0 0 30px rgba(91,79,207,.6));
+    animation: splashBall 1s cubic-bezier(.34,1.56,.64,1) both;
+  }
+  @keyframes splashBall {
+    from { transform: scale(0) rotate(-180deg); opacity: 0; }
+    to   { transform: scale(1) rotate(0deg); opacity: 1; }
+  }
+  #splash-title {
+    font-size: clamp(2.2rem, 8vw, 3.2rem);
+    font-weight: 900; letter-spacing: -1px;
+    display: flex; flex-wrap: wrap; justify-content: center;
+  }
+  #splash-title span {
+    display: inline-block;
+    background: var(--grad);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+    opacity: 0;
+    animation: letterDrop .5s cubic-bezier(.34,1.56,.64,1) forwards;
+  }
+  @keyframes letterDrop {
+    from { opacity: 0; transform: translateY(-40px) scale(1.4); filter: blur(4px); }
+    to   { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
+  }
+  #splash-sub {
+    font-size: .85rem; color: var(--muted); font-weight: 600;
+    letter-spacing: .1em; text-transform: uppercase;
+    opacity: 0; animation: fadeUp .5s ease 1.2s forwards;
+  }
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(10px); }
+    to   { opacity: 1; transform: none; }
+  }
+  #splash-bar-wrap {
+    width: 200px; height: 3px;
+    background: var(--border); border-radius: 2px; overflow: hidden;
+    opacity: 0; animation: fadeUp .3s ease 1.3s forwards;
+  }
+  #splash-bar {
+    height: 100%; width: 0%;
+    background: var(--grad); border-radius: 2px;
+    transition: width .05s linear;
+  }
+  #splash.hide {
+    animation: splashOut .5s cubic-bezier(.4,0,1,1) forwards;
+  }
+  @keyframes splashOut {
+    0%   { opacity: 1; transform: scale(1); }
+    100% { opacity: 0; transform: scale(1.04); pointer-events: none; }
+  }
 </style>
 </head>
 <body>
@@ -411,6 +480,22 @@
 
 </div>
 <div class="toast" id="toast"></div>
+
+<!-- SPLASH SCREEN -->
+<div id="splash">
+  <div id="splash-inner">
+    <div id="splash-ball">⚽</div>
+    <div id="splash-title">
+      <span>P</span><span>a</span><span>ń</span><span>s</span><span>t</span><span>w</span><span>a</span>
+      <span style="display:inline-block;width:.4em"></span>
+      <span>M</span><span>i</span><span>a</span><span>s</span><span>t</span><span>a</span>
+    </div>
+    <div id="splash-sub">Piłkarska edycja · Multiplayer</div>
+    <div id="splash-bar-wrap">
+      <div id="splash-bar"></div>
+    </div>
+  </div>
+</div>
 
 <!-- PREVIEW BAR -->
 <div id="preview-bar" style="display:none">
@@ -757,7 +842,31 @@ function genCode() {
   return Math.random().toString(36).substring(2, 8).toUpperCase();
 }
 
-// --- BALL PHYSICS ---
+// --- SPLASH ---
+(function() {
+  const splash = document.getElementById('splash');
+  const bar = document.getElementById('splash-bar');
+  const letters = document.querySelectorAll('#splash-title span');
+
+  // Stagger letter animations
+  letters.forEach((el, i) => {
+    el.style.animationDelay = (0.15 + i * 0.07) + 's';
+  });
+
+  // Progress bar
+  let progress = 0;
+  const barInterval = setInterval(() => {
+    progress += Math.random() * 8 + 3;
+    if (progress >= 100) { progress = 100; clearInterval(barInterval); }
+    bar.style.width = progress + '%';
+  }, 80);
+
+  // Hide after ~2.4s
+  setTimeout(() => {
+    splash.classList.add('hide');
+    setTimeout(() => { splash.style.display = 'none'; }, 500);
+  }, 2400);
+})();
 (function initBall() {
   const ball = document.getElementById('home-ball');
   if (!ball) return;
