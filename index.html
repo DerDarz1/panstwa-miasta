@@ -2163,30 +2163,15 @@ function activatePreview() {
   document.getElementById('answer-timer-fill').style.width = '60%';
   document.getElementById('answer-timer-text').textContent = '1:12';
 
-  // fake voting screen
-  const vt = document.getElementById('voting-tables');
-  vt.innerHTML = '';
-  const fakePlayers = ['Kacper','Ola'];
-  cats.forEach(cat => {
-    const card = document.createElement('div');
-    card.className = 'card';
-    card.style.marginBottom = '12px';
-    let html = `<h3 style="margin-bottom:8px">${cat}</h3><table class="voting-table"><tbody>`;
-    fakePlayers.forEach(player => {
-      const fakeAnswer = { 'Piłkarz':'Kylian Mbappé','Klub piłkarski':'Kaiserslautern','Kraj/Reprezentacja':'Kamerun','Liga piłkarska':'Kreisliga','Stadion':'King Power','Trener':'Klopp','inne słowo na gol':'Kutas','Turniej/Rozgrywki':'Konfederacji','Legendarny piłkarz':'Keane','Pozycja na boisku':'Kapitan' }[cat] || 'Kowalski';
-      html += `<tr>
-        <td style="width:110px;font-weight:600">${player}</td>
-        <td>${fakeAnswer}</td>
-        <td style="width:72px;text-align:right">
-          <button class="vote-btn approve" data-player="${player}" data-cat="${cat}" data-val="1">✓</button>
-          <button class="vote-btn reject" data-player="${player}" data-cat="${cat}" data-val="0">✗</button>
-        </td>
-      </tr>`;
+  // fake voting screen — use doVoting with fake room data
+  const fakeAnswers = {};
+  ['Kacper','Ola'].forEach(p => {
+    fakeAnswers[p] = {};
+    cats.forEach(cat => {
+      fakeAnswers[p][safeKey(cat)] = { 'Imię':'Kamil','Nazwisko':'Kowalski','Miasto':'Kraków','Państwo':'Kenia','Rzeka':'Kama','Zwierzę':'Krokodyl','Zawód':'Kucharz','Film':'Kiler','Piosenka':'Kocham Cię' }[cat] || 'Kowalski';
     });
-    html += '</tbody></table>';
-    card.innerHTML = html;
-    vt.appendChild(card);
   });
+  doVoting({ answers: fakeAnswers, roundCategories: cats, players: { Jan:{nick:'Jan'}, Kacper:{nick:'Kacper'}, Ola:{nick:'Ola'} }, config: gameConfig });
   document.getElementById('submit-votes-btn').style.display = 'block';
   document.getElementById('voting-waiting').style.display = 'none';
 
