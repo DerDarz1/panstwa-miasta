@@ -394,7 +394,7 @@
     <div id="profile-nick-display" style="font-size:1.3rem;font-weight:900;margin-bottom:4px"></div>
     <div style="font-size:.78rem;color:var(--muted)">Gracz lokalny</div>
     <button id="profile-edit-nick-btn" class="btn-secondary" style="margin-top:14px;padding:9px;font-size:.82rem">✏️ Zmień nick</button>
-    <div id="profile-nick-edit" style="display:none;margin-top:10px;display:none">
+    <div id="profile-nick-edit" style="display:none;margin-top:10px">
       <input id="profile-nick-input" type="text" maxlength="20" autocomplete="off" style="margin-bottom:8px">
       <button id="profile-nick-save-btn" class="btn-green" style="padding:10px">Zapisz ✓</button>
     </div>
@@ -916,9 +916,13 @@ window.addEventListener('popstate', (e) => {
 (function restoreFromHash() {
   const hash = location.hash;
   const screenId = HASH_SCREEN[hash];
-  if (screenId) {
+  if (!screenId) return;
+  if (screenId === 'screen-profile') {
+    // Wait for nick to load, then open profile
+    setTimeout(() => { if (typeof openProfile === 'function') openProfile(); }, 100);
+  } else {
     document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-    document.getElementById(screenId).classList.add('active');
+    document.getElementById(screenId)?.classList.add('active');
   }
 })();
 
@@ -1242,6 +1246,9 @@ document.getElementById('profile-reset-btn').onclick = () => {
   openProfile();
   toast('Statystyki wyczyszczone');
 };
+
+// --- NICK ---
+if (myNick) {
   document.getElementById('home-nick-display').textContent = `Witaj, ${myNick}!`;
   showScreen('screen-home');
 }
