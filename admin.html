@@ -17,40 +17,7 @@
   .card h2 { font-size:.9rem; font-weight:800; color:#8ba3c7; text-transform:uppercase; letter-spacing:.08em; margin-bottom:12px; }
   table { width:100%; border-collapse:collapse; font-size:.85rem; }
   th { background:#151b27; padding:8px 12px; text-align:left; color:#5d7499; font-weight:700; font-size:.7rem; text-transform:uppercase; letter-spacing:.06em; border-bottom:1px solid #1f2d42; }
-  td { padding:9px 12px; border-bottom:1px solid #1a2535; }
-
-  /* LOGIN SCREEN */
-  #login-screen {
-    position:fixed; inset:0; background:#07090f; z-index:999;
-    display:flex; align-items:center; justify-content:center;
-  }
-  #login-screen::before {
-    content:''; position:absolute; inset:0; pointer-events:none;
-    background: radial-gradient(ellipse 70% 50% at 50% 40%, rgba(91,79,207,.18) 0%, transparent 65%);
-  }
-  .login-box {
-    background:#0e1117; border:1px solid #2d4060; border-radius:20px;
-    padding:32px 28px; width:100%; max-width:340px;
-    position:relative; z-index:1;
-    box-shadow:0 20px 60px rgba(0,0,0,.6);
-  }
-  .login-box h2 { font-size:1.3rem; font-weight:900; margin-bottom:4px; background:linear-gradient(135deg,#5b4fcf,#c084fc); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
-  .login-box p { color:#5d7499; font-size:.82rem; margin-bottom:20px; }
-  .login-box input {
-    width:100%; background:#151b27; border:1px solid #2d4060; border-radius:12px;
-    padding:12px 14px; color:#eef2ff; font-size:1rem; outline:none;
-    font-family:inherit; margin-bottom:12px;
-    transition:border-color .18s, box-shadow .18s;
-  }
-  .login-box input:focus { border-color:#8b7ff5; box-shadow:0 0 0 3px rgba(91,79,207,.2); }
-  .login-box button {
-    width:100%; padding:13px; border-radius:12px; border:none;
-    background:linear-gradient(135deg,#5b4fcf,#8b7ff5); color:#fff;
-    font-size:.95rem; font-weight:700; cursor:pointer; font-family:inherit;
-    transition:filter .15s;
-  }
-  .login-box button:hover { filter:brightness(1.1); }
-  .login-err { color:#f56565; font-size:.8rem; text-align:center; margin-top:8px; min-height:18px; }
+  td { padding:9px 12px; border-bottom:1px solid #1a2535; vertical-align:middle; }
   tr:last-child td { border-bottom:none; }
   tr:hover td { background:rgba(91,79,207,.04); }
   .badge { display:inline-block; padding:2px 8px; border-radius:20px; font-size:.68rem; font-weight:700; }
@@ -58,52 +25,114 @@
   .badge-done { background:rgba(91,79,207,.15); color:#8b7ff5; border:1px solid rgba(91,79,207,.3); }
   .badge-lobby { background:rgba(246,201,14,.12); color:#f6c90e; border:1px solid rgba(246,201,14,.25); }
   .nick-chip { display:inline-block; background:#151b27; border:1px solid #2d4060; border-radius:20px; padding:3px 9px; font-size:.75rem; margin:2px; }
-  .refresh-btn { background:linear-gradient(135deg,#5b4fcf,#8b7ff5); color:#fff; border:none; border-radius:10px; padding:9px 18px; font-size:.85rem; font-weight:700; cursor:pointer; margin-bottom:20px; }
+  .refresh-btn { background:linear-gradient(135deg,#5b4fcf,#8b7ff5); color:#fff; border:none; border-radius:10px; padding:9px 18px; font-size:.85rem; font-weight:700; cursor:pointer; margin-bottom:20px; margin-right:8px; }
   .refresh-btn:hover { filter:brightness(1.1); }
+  .logout-btn { background:transparent; color:#5d7499; border:1px solid #2d4060; border-radius:10px; padding:9px 18px; font-size:.85rem; font-weight:700; cursor:pointer; margin-bottom:20px; }
+  .logout-btn:hover { color:#eef2ff; border-color:#5d7499; }
+  .del-btn { background:rgba(245,101,101,.15); color:#f56565; border:1px solid rgba(245,101,101,.3); border-radius:8px; padding:4px 10px; font-size:.72rem; font-weight:700; cursor:pointer; white-space:nowrap; }
+  .del-btn:hover { background:rgba(245,101,101,.3); }
   .empty { color:#5d7499; font-size:.85rem; text-align:center; padding:20px; }
-  #loading { color:#5d7499; text-align:center; padding:40px; font-size:.9rem; }
+
+  /* LOGIN */
+  #login-screen { position:fixed; inset:0; background:#07090f; z-index:999; display:flex; align-items:center; justify-content:center; }
+  #login-screen::before { content:''; position:absolute; inset:0; pointer-events:none; background:radial-gradient(ellipse 70% 50% at 50% 40%,rgba(91,79,207,.18) 0%,transparent 65%); }
+  .login-box { background:#0e1117; border:1px solid #2d4060; border-radius:20px; padding:32px 28px; width:100%; max-width:340px; position:relative; z-index:1; box-shadow:0 20px 60px rgba(0,0,0,.6); }
+  .login-box h2 { font-size:1.3rem; font-weight:900; margin-bottom:4px; background:linear-gradient(135deg,#5b4fcf,#c084fc); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
+  .login-box p { color:#5d7499; font-size:.82rem; margin-bottom:20px; }
+  .login-box input { width:100%; background:#151b27; border:1px solid #2d4060; border-radius:12px; padding:12px 14px; color:#eef2ff; font-size:1rem; outline:none; font-family:inherit; margin-bottom:10px; transition:border-color .18s,box-shadow .18s; }
+  .login-box input:focus { border-color:#8b7ff5; box-shadow:0 0 0 3px rgba(91,79,207,.2); }
+  .login-box .remember { display:flex; align-items:center; gap:8px; margin-bottom:14px; font-size:.82rem; color:#5d7499; cursor:pointer; }
+  .login-box .remember input[type=checkbox] { width:16px; height:16px; accent-color:#8b7ff5; cursor:pointer; }
+  .login-box button { width:100%; padding:13px; border-radius:12px; border:none; background:linear-gradient(135deg,#5b4fcf,#8b7ff5); color:#fff; font-size:.95rem; font-weight:700; cursor:pointer; font-family:inherit; transition:filter .15s; }
+  .login-box button:hover { filter:brightness(1.1); }
+  .login-err { color:#f56565; font-size:.8rem; text-align:center; margin-top:8px; min-height:18px; }
 </style>
 </head>
 <body>
 
-<!-- LOGIN SCREEN -->
+<!-- LOGIN -->
 <div id="login-screen">
   <div class="login-box">
     <h2>🔐 Panel Admina</h2>
     <p>Państwa Miasta — dostęp chroniony</p>
-    <input type="password" id="pwd-input" placeholder="Hasło..." autocomplete="off">
+    <input type="password" id="pwd-input" placeholder="Hasło..." autocomplete="current-password">
+    <label class="remember">
+      <input type="checkbox" id="remember-me"> Zapamiętaj mnie
+    </label>
     <button onclick="checkPwd()">Zaloguj →</button>
     <div class="login-err" id="login-err"></div>
   </div>
 </div>
 
+<!-- ADMIN CONTENT -->
 <div id="admin-content" style="display:none">
-<p class="sub">Państwa Miasta — statystyki w czasie rzeczywistym</p>
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:8px">
+    <div>
+      <h1>📊 Panel Admina</h1>
+      <p class="sub" style="margin-bottom:0">Państwa Miasta — statystyki w czasie rzeczywistym</p>
+    </div>
+    <button class="logout-btn" onclick="logout()">🚪 Wyloguj</button>
+  </div>
 
-<button class="refresh-btn" onclick="loadData()">🔄 Odśwież</button>
+  <button class="refresh-btn" onclick="loadData()">🔄 Odśwież</button>
 
-<div class="stats-row">
-  <div class="stat-card"><div class="stat-val" id="stat-rooms">—</div><div class="stat-label">Aktywne pokoje</div></div>
-  <div class="stat-card"><div class="stat-val" id="stat-players">—</div><div class="stat-label">Graczy online</div></div>
-  <div class="stat-card"><div class="stat-val" id="stat-total-nicks">—</div><div class="stat-label">Unikalnych nicków</div></div>
-  <div class="stat-card"><div class="stat-val" id="stat-games">—</div><div class="stat-label">Rozegranych gier</div></div>
+  <div class="stats-row">
+    <div class="stat-card"><div class="stat-val" id="stat-rooms">—</div><div class="stat-label">Aktywne pokoje</div></div>
+    <div class="stat-card"><div class="stat-val" id="stat-players">—</div><div class="stat-label">Graczy online</div></div>
+    <div class="stat-card"><div class="stat-val" id="stat-total-nicks">—</div><div class="stat-label">Unikalnych nicków</div></div>
+    <div class="stat-card"><div class="stat-val" id="stat-games">—</div><div class="stat-label">Rozegranych gier</div></div>
+  </div>
+
+  <div class="card">
+    <h2>🏟️ Aktywne pokoje</h2>
+    <div id="rooms-table"><div class="empty">Ładowanie...</div></div>
+  </div>
+
+  <div class="card">
+    <h2>👥 Wszyscy gracze (historia)</h2>
+    <div id="nicks-table"><div class="empty">Ładowanie...</div></div>
+  </div>
 </div>
 
-<div class="card">
-  <h2>🏟️ Aktywne pokoje</h2>
-  <div id="rooms-table"><div class="empty">Ładowanie...</div></div>
-</div>
+<script>
+function checkPwd() {
+  const val = document.getElementById('pwd-input').value;
+  if (val === atob('UE1AYWRtaW4yMDI1')) {
+    const remember = document.getElementById('remember-me').checked;
+    if (remember) localStorage.setItem('pm-admin', '1');
+    else sessionStorage.setItem('pm-admin', '1');
+    showAdmin();
+  } else {
+    document.getElementById('login-err').textContent = '❌ Złe hasło';
+    document.getElementById('pwd-input').value = '';
+    document.getElementById('pwd-input').focus();
+  }
+}
 
-<div class="card">
-  <h2>👥 Wszyscy gracze (historia)</h2>
-  <div id="nicks-table"><div class="empty">Ładowanie...</div></div>
-</div>
+function showAdmin() {
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('admin-content').style.display = 'block';
+}
 
-<div id="loading" style="display:none">Ładowanie danych...</div>
+function logout() {
+  localStorage.removeItem('pm-admin');
+  sessionStorage.removeItem('pm-admin');
+  location.reload();
+}
+
+document.getElementById('pwd-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter') checkPwd();
+});
+
+// Auto-login
+if (localStorage.getItem('pm-admin') === '1' || sessionStorage.getItem('pm-admin') === '1') {
+  showAdmin();
+}
+</script>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getDatabase, ref, get, onValue } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+import { getDatabase, ref, get, remove, onValue } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyB7c4oqrupOt3ksDLntwJXCx7dL8GWMy0w",
@@ -118,100 +147,89 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 
-const allNicks = new Set();
+// Persistent nick history across refreshes
+let nickHistory = new Set(JSON.parse(localStorage.getItem('pm-admin-nicks') || '[]'));
 let totalGames = 0;
+
+window.deleteRoom = async function(code) {
+  if (!confirm(`Usunąć pokój ${code}?`)) return;
+  await remove(ref(db, `pm-rooms/${code}`));
+  loadData();
+};
 
 window.loadData = async function() {
   document.getElementById('rooms-table').innerHTML = '<div class="empty">Ładowanie...</div>';
+  totalGames = 0;
 
   const snap = await get(ref(db, 'pm-rooms'));
   const rooms = snap.val() || {};
   const roomList = Object.entries(rooms);
 
-  // Stats
   let totalPlayers = 0;
   roomList.forEach(([code, room]) => {
     const players = Object.values(room.players || {});
     totalPlayers += players.length;
-    players.forEach(p => allNicks.add(p.nick));
-    if (room.status === 'scores' || room.round > 0) totalGames++;
+    // Add to persistent history
+    players.forEach(p => { if (p.nick) nickHistory.add(p.nick); });
+    if ((room.status && room.status !== 'lobby') || room.round > 0) totalGames++;
   });
+
+  // Save nick history
+  localStorage.setItem('pm-admin-nicks', JSON.stringify([...nickHistory]));
 
   document.getElementById('stat-rooms').textContent = roomList.length;
   document.getElementById('stat-players').textContent = totalPlayers;
-  document.getElementById('stat-total-nicks').textContent = allNicks.size;
+  document.getElementById('stat-total-nicks').textContent = nickHistory.size;
   document.getElementById('stat-games').textContent = totalGames;
 
   // Rooms table
   if (roomList.length === 0) {
     document.getElementById('rooms-table').innerHTML = '<div class="empty">Brak aktywnych pokoi</div>';
   } else {
-    let html = `<table><thead><tr><th>Kod</th><th>Host</th><th>Status</th><th>Runda</th><th>Gracze</th><th>Czas</th></tr></thead><tbody>`;
-    roomList.forEach(([code, room]) => {
+    const statusMap = { lobby:'lobby', 'letter-draw':'losowanie', answering:'odpowiedzi', voting:'głosowanie', scores:'wyniki' };
+    const statusClass = { lobby:'badge-lobby', 'letter-draw':'badge-active', answering:'badge-active', voting:'badge-active', scores:'badge-done' };
+    let html = `<table><thead><tr><th>Kod</th><th>Host</th><th>Status</th><th>Runda</th><th>Gracze</th><th>Czas</th><th></th></tr></thead><tbody>`;
+    roomList.sort((a,b) => (b[1].createdAt||0) - (a[1].createdAt||0)).forEach(([code, room]) => {
       const players = Object.values(room.players || {});
-      const statusMap = { lobby:'lobby', 'letter-draw':'losowanie', answering:'odpowiedzi', voting:'głosowanie', scores:'wyniki' };
-      const statusClass = { lobby:'badge-lobby', 'letter-draw':'badge-active', answering:'badge-active', voting:'badge-active', scores:'badge-done' };
       const age = room.createdAt ? Math.floor((Date.now() - room.createdAt) / 60000) : '?';
       html += `<tr>
-        <td><strong>${code}</strong></td>
+        <td><strong style="font-family:monospace">${code}</strong></td>
         <td>${room.host || '?'}</td>
         <td><span class="badge ${statusClass[room.status] || 'badge-lobby'}">${statusMap[room.status] || room.status}</span></td>
         <td>${room.round || 0} / ${room.config?.maxRounds || '?'}</td>
-        <td>${players.map(p => `<span class="nick-chip">${p.nick}</span>`).join('')}</td>
-        <td>${age} min temu</td>
+        <td>${players.map(p => `<span class="nick-chip">${p.nick}</span>`).join('') || '<span style="color:#5d7499">—</span>'}</td>
+        <td style="color:#5d7499;font-size:.8rem">${age} min</td>
+        <td><button class="del-btn" onclick="deleteRoom('${code}')">🗑 Usuń</button></td>
       </tr>`;
     });
     html += '</tbody></table>';
     document.getElementById('rooms-table').innerHTML = html;
   }
 
-  // All nicks
-  if (allNicks.size === 0) {
-    document.getElementById('nicks-table').innerHTML = '<div class="empty">Brak danych</div>';
-  } else {
-    const sorted = [...allNicks].sort();
-    document.getElementById('nicks-table').innerHTML =
-      `<div style="display:flex;flex-wrap:wrap;gap:6px;padding:4px 0">${sorted.map(n => `<span class="nick-chip">${n}</span>`).join('')}</div>
-       <p style="font-size:.72rem;color:#5d7499;margin-top:10px">Łącznie: ${allNicks.size} unikalnych nicków z aktywnych pokoi</p>`;
-  }
+  // Nick history
+  const sorted = [...nickHistory].sort();
+  document.getElementById('nicks-table').innerHTML = sorted.length === 0
+    ? '<div class="empty">Brak danych</div>'
+    : `<div style="display:flex;flex-wrap:wrap;gap:6px;padding:4px 0">
+        ${sorted.map(n => `<span class="nick-chip">${n}</span>`).join('')}
+       </div>
+       <div style="display:flex;align-items:center;justify-content:space-between;margin-top:10px">
+         <p style="font-size:.72rem;color:#5d7499">Łącznie: ${nickHistory.size} unikalnych nicków</p>
+         <button onclick="clearNicks()" style="background:transparent;border:1px solid #2d4060;color:#5d7499;border-radius:8px;padding:4px 10px;font-size:.72rem;cursor:pointer">🗑 Wyczyść historię</button>
+       </div>`;
+};
+
+window.clearNicks = function() {
+  if (!confirm('Wyczyścić historię nicków?')) return;
+  nickHistory.clear();
+  localStorage.removeItem('pm-admin-nicks');
+  loadData();
 };
 
 // Auto-refresh co 30s
 loadData();
 setInterval(loadData, 30000);
-
-// Live listener
 onValue(ref(db, 'pm-rooms'), () => loadData());
-</script>
-
-<script>
-// Musi być poza type="module" żeby onclick działał
-const HASH = '6a3b2c1d9e8f7a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b';
-
-function checkPwd() {
-  const val = document.getElementById('pwd-input').value;
-  // Proste porównanie — hasło: PM@admin2025
-  if (val === atob('UE1AYWRtaW4yMDI1')) {
-    document.getElementById('login-screen').style.display = 'none';
-    document.getElementById('admin-content').style.display = 'block';
-    sessionStorage.setItem('pm-admin', '1');
-  } else {
-    document.getElementById('login-err').textContent = '❌ Złe hasło';
-    document.getElementById('pwd-input').value = '';
-    document.getElementById('pwd-input').focus();
-  }
-}
-
-// Enter key
-document.getElementById('pwd-input').addEventListener('keydown', function(e) {
-  if (e.key === 'Enter') checkPwd();
-});
-
-// Auto-login if session active
-if (sessionStorage.getItem('pm-admin') === '1') {
-  document.getElementById('login-screen').style.display = 'none';
-  document.getElementById('admin-content').style.display = 'block';
-}
 </script>
 </body>
 </html>
