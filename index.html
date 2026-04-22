@@ -1756,7 +1756,7 @@ function doVoting(room) {
     soundVote();
 
     // Live push
-    update(ref(db, `pm-rooms/${roomCode}/liveVotes/${myNick}/${rp}/${rc}`), val === '1');
+    update(ref(db, `pm-rooms/${roomCode}/liveVotes/${myNick}/${rp}/${safeKey(rc)}`), val === '1');
     updateLiveVoteDisplay(rp, rc, null);
   };
 
@@ -1792,37 +1792,40 @@ function doVoting(room) {
     const safeCat = safeKey(cat);
     const safePlayer = safeKey(player);
     const votes = liveVotes || {};
-    let yes = 0, no = 0, total = 0;
+    let yes = 0, no = 0;
+    const dots = []; // {val: true/false} per voter
+
     Object.entries(votes).forEach(([voter, playerVotes]) => {
       if (voter === player) return;
-      const v = playerVotes?.[player]?.[cat];
-      if (v !== undefined) { total++; v ? yes++ : no++; }
+      // Try both sanitized and raw key
+      const v = playerVotes?.[player]?.[safeCat] ?? playerVotes?.[player]?.[cat];
+      if (v !== undefined && typeof v === 'boolean') {
+        v ? yes++ : no++;
+        dots.push(v);
+      }
     });
 
     const answerCell = container.querySelector(`[data-answer-cell="${safePlayer}__${safeCat}"]`);
     if (!answerCell) return;
 
-    if (total === 0) {
-      answerCell.style.textDecoration = '';
-      answerCell.style.opacity = '';
-      answerCell.style.color = '';
-      answerCell.querySelector('.vote-live-count')?.remove();
-      return;
-    }
+    const total = yes + no;
+    const majority = no > yes && no >= Math.ceil(total / 2) && total > 0;
 
-    const majority = no > yes && no > total / 2;
+    // Update answer text style
     answerCell.style.textDecoration = majority ? 'line-through' : '';
-    answerCell.style.opacity = majority ? '0.45' : '1';
-    answerCell.style.color = majority ? 'var(--red)' : yes > no ? 'var(--green)' : '';
+    answerCell.style.color = majority ? 'var(--red)' : (yes > no && total > 0) ? 'var(--green)' : '';
 
-    let badge = answerCell.querySelector('.vote-live-count');
-    if (!badge) {
-      badge = document.createElement('span');
-      badge.className = 'vote-live-count';
-      badge.style.cssText = 'font-size:.65rem;margin-left:6px;font-weight:800;opacity:.8;white-space:nowrap';
-      answerCell.appendChild(badge);
+    // Render dots
+    let dotsEl = answerCell.querySelector('.vote-dots');
+    if (!dotsEl) {
+      dotsEl = document.createElement('div');
+      dotsEl.className = 'vote-dots';
+      dotsEl.style.cssText = 'display:flex;gap:3px;margin-top:4px;flex-wrap:wrap';
+      answerCell.appendChild(dotsEl);
     }
-    badge.textContent = `${yes}✓ ${no}✗`;
+    dotsEl.innerHTML = dots.map(v =>
+      `<span style="width:8px;height:8px;border-radius:50%;background:${v ? 'var(--green)' : 'var(--red)'};display:inline-block;box-shadow:0 0 4px ${v ? 'rgba(14,196,184,.5)' : 'rgba(245,101,101,.5)'}"></span>`
+    ).join('');
   }
 
   document.getElementById('submit-votes-btn').style.display = 'block';
