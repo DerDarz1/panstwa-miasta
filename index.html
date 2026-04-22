@@ -190,6 +190,16 @@
   .cat-chip.selected { color:#fff; border-color:transparent; }
   .cat-chips-wrap { display:flex; flex-wrap:wrap; padding:2px 0; }
 
+  /* Custom scrollbar for category picker */
+  #cat-group-content {
+    scrollbar-width: thin;
+    scrollbar-color: var(--border2) transparent;
+  }
+  #cat-group-content::-webkit-scrollbar { width: 4px; }
+  #cat-group-content::-webkit-scrollbar-track { background: transparent; }
+  #cat-group-content::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 4px; }
+  #cat-group-content::-webkit-scrollbar-thumb:hover { background: var(--accent2); }
+
   .answer-progress { display:flex; gap:4px; margin-bottom:4px; }
   .answer-progress-dot { flex:1; height:3px; border-radius:2px; background:var(--border); transition:background .3s; }
   .answer-progress-dot.filled { background:var(--grad-green); }
